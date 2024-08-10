@@ -1,0 +1,67 @@
+[build-system]
+requires = ["hatchling"]
+build-backend = "hatchling.build"
+
+[project]
+name = "django-litestream"
+dynamic = ["version"]
+description = ''
+readme = "README.md"
+requires-python = ">=3.8"
+license = {file = "LICENSE.txt"}
+keywords = []
+authors = [
+  { name = "Tobi DEGNON", email = "tobidegnon@proton.me" },
+]
+classifiers = [
+  "Development Status :: 4 - Beta",
+  "Programming Language :: Python",
+  "Programming Language :: Python :: 3.8",
+  "Programming Language :: Python :: 3.9",
+  "Programming Language :: Python :: 3.10",
+  "Programming Language :: Python :: 3.11",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: Implementation :: CPython",
+  "Programming Language :: Python :: Implementation :: PyPy",
+]
+dependencies = ["django>=4.2", "litestream-bin", "pyyaml"]
+
+[project.urls]
+Documentation = "https://github.com/Tobi DEGNON/django-litestream#readme"
+Issues = "https://github.com/Tobi DEGNON/django-litestream/issues"
+Source = "https://github.com/Tobi DEGNON/django-litestream"
+
+[tool.hatch.version]
+path = "src/django_litestream/__about__.py"
+
+[tool.hatch.envs.default]
+dependencies = [
+  "pre-commit",
+  "reorder-python-imports",
+]
+
+[tool.hatch.envs.types]
+extra-dependencies = [
+  "mypy>=1.0.0",
+]
+[tool.hatch.envs.types.scripts]
+check = "mypy --install-types --non-interactive {args:src/django_litestream tests}"
+
+[tool.coverage.run]
+source_pkgs = ["django_litestream", "tests"]
+branch = true
+parallel = true
+omit = [
+  "src/django_litestream/__about__.py",
+]
+
+[tool.coverage.paths]
+django_litestream = ["src/django_litestream", "*/django-litestream/src/django_litestream"]
+tests = ["tests", "*/django-litestream/tests"]
+
+[tool.coverage.report]
+exclude_lines = [
+  "no cov",
+  "if __name__ == .__main__.:",
+  "if TYPE_CHECKING:",
+]
