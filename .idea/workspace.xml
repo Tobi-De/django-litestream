@@ -5,7 +5,17 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="06ad9acc-f715-4fe6-a328-19df77ce9574" name="Changes" comment="">
+<<<<<<< Updated upstream
+=======
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+<<<<<<< Updated upstream
+      <change beforePath="$PROJECT_DIR$/src/django_litestream/conf.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/django_litestream/conf.py" afterDir="false" />
+>>>>>>> Stashed changes
       <change beforePath="$PROJECT_DIR$/src/django_litestream/management/commands/litestream.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/django_litestream/management/commands/litestream.py" afterDir="false" />
+=======
+      <change beforePath="$PROJECT_DIR$/README.md" beforeDir="false" afterPath="$PROJECT_DIR$/README.md" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/pyproject.toml" beforeDir="false" afterPath="$PROJECT_DIR$/pyproject.toml" afterDir="false" />
+>>>>>>> Stashed changes
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -84,7 +94,7 @@
       <workItem from="1723280939699" duration="2190000" />
       <workItem from="1723284486183" duration="20767000" />
       <workItem from="1723325382920" duration="4564000" />
-      <workItem from="1723362061585" duration="3487000" />
+      <workItem from="1723362061585" duration="4728000" />
     </task>
     <servers />
   </component>
