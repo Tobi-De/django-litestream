@@ -141,6 +141,7 @@ litestream_commands = {
         "arguments": [
             CONFIG_ARG,
             NO_EXPAND_ENV_ARG,
+            DB_PATH_OR_REPLICA_URL_ARG,
             {
                 "name": "-generation",
                 "help": "Optional, filter by a specific generation.",
