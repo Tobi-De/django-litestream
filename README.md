@@ -158,6 +158,12 @@ LITESTREAM = {
 }
 ```
 
+You can omit the `access-key-id` and `secret-access-key` keys and litestream will automatically use any of the environment variables below if available:
+
+- `AWS_ACCESS_KEY_ID` or `LITESTREAM_ACCESS_KEY_ID`
+- `AWS_SECRET_ACCESS_KEY` or `LITESTREAM_SECRET_ACCESS_KEY`
+
+
 #### litestream databases
 
 This works exactly like the equivalent [litestream command](https://litestream.io/reference/databases/) and lists all the databases.
@@ -174,7 +180,9 @@ dj litestream databases
 
 #### litestream generations
 
-This works exactly like the equivalent [litestream command](https://litestream.io/reference/generations/). Examples:
+This works exactly like the equivalent [litestream command](https://litestream.io/reference/generations/).
+
+Examples:
 
 ```console
 dj litestream generations default
