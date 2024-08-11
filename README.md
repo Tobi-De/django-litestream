@@ -38,6 +38,10 @@ Add `django_litestream` to your Django `INSTALLED_APPS`.
 
 The package integrates all the commands and options from the `litestream` command-line tool with minimal differences.
 
+> [!Note]
+> Django 5.1 was released a few days ago (as of the time of writing). If you are 
+> looking for a good production configuration for SQLite, check out [this blog post](https://blog.pecar.me/sqlite-django-config#in-django-51-or-newer).
+
 ### Configuration
 
 These are the available configurations for `django-litestream`:
