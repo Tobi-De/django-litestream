@@ -97,8 +97,8 @@ commit_args = "--no-verify"
 
 [[tool.bumpversion.files]]
 filename = "src/django_litestream/__about__.py"
-search = '__version__  = "{current_version}"'
-replace = '__version__  = "{new_version}"'
+search = '__version__ = "{current_version}"'
+replace = '__version__ = "{new_version}"'
 
 [tool.git-cliff.changelog]
 header = """
