@@ -231,8 +231,8 @@ def _init(filepath: Path):
                         ],
                     }
                 )
-        if app_settings.extra_dbs:
-            dbs.extend(app_settings.extra_dbs)
+        if app_settings.extend_dbs:
+            dbs.extend(app_settings.extend_dbs)
     with open(filepath, "w") as f:
         dump({"dbs": dbs}, f, sort_keys=False)
 

@@ -24,7 +24,7 @@ class AppSettings:
     config_file: Path | str = "/etc/litestream.yml"
     bin_path: Path | str = "litestream"
     dbs: list[dict[str, str]] = None
-    extra_dbs: list[dict[str, str]] = None
+    extend_dbs: list[dict[str, str]] = None
 
     @override
     def __getattribute__(self, __name: str) -> object:
