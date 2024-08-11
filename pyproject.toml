@@ -34,9 +34,9 @@ classifiers = [
 dependencies = ["django>=4.2", "litestream-bin", "pyyaml"]
 
 [project.urls]
-Documentation = "https://github.com/Tobi DEGNON/django-litestream#readme"
-Issues = "https://github.com/Tobi DEGNON/django-litestream/issues"
-Source = "https://github.com/Tobi DEGNON/django-litestream"
+Documentation = "https://github.com/Tobi-De/django-litestream#readme"
+Issues = "https://github.com/Tobi-De/django-litestream/issues"
+Source = "https://github.com/Tobi-De/django-litestream"
 
 [tool.hatch.version]
 path = "src/django_litestream/__about__.py"
