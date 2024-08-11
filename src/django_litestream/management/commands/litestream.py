@@ -233,8 +233,13 @@ def _init(filepath: Path):
                 )
         if app_settings.extend_dbs:
             dbs.extend(app_settings.extend_dbs)
+    config = {"dbs": dbs}
+    if app_settings.logging:
+        config["logging"] = app_settings.logging
+    if app_settings.addr:
+        config["addr"] = app_settings.addr
     with open(filepath, "w") as f:
-        dump({"dbs": dbs}, f, sort_keys=False)
+        dump(config, f, sort_keys=False)
 
 
 def _add_argument(parser: ArgumentParser, args: dict) -> None:

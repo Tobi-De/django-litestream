@@ -25,6 +25,8 @@ class AppSettings:
     bin_path: Path | str = "litestream"
     dbs: list[dict[str, str]] = None
     extend_dbs: list[dict[str, str]] = None
+    logging: dict[str, str] = None
+    addr: str | None = None
 
     @override
     def __getattribute__(self, __name: str) -> object:
