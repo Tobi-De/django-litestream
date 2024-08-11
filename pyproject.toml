@@ -89,9 +89,9 @@ message = "Bump version: {current_version} → {new_version}"
 commit_args = "--no-verify"
 
 [[tool.bumpversion.files]]
-filename = "pyproject.toml"
-search = 'version = "{current_version}"'
-replace = 'version = "{new_version}"'
+filename = "src/django_litestream/__about__.py"
+search = '__version__  = "{current_version}"'
+replace = '__version__  = "{new_version}"'
 
 [tool.git-cliff.changelog]
 header = """

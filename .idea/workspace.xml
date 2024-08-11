@@ -5,7 +5,11 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="06ad9acc-f715-4fe6-a328-19df77ce9574" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/justfile" beforeDir="false" afterPath="$PROJECT_DIR$/justfile" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist/django_litestream-0.0.1-py3-none-any.whl" beforeDir="false" afterPath="$PROJECT_DIR$/dist/django_litestream-0.0.1-py3-none-any.whl" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/dist/django_litestream-0.0.1.tar.gz" beforeDir="false" afterPath="$PROJECT_DIR$/dist/django_litestream-0.0.1.tar.gz" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/pyproject.toml" beforeDir="false" afterPath="$PROJECT_DIR$/pyproject.toml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/django_litestream/__about__.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/django_litestream/__about__.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -84,7 +88,7 @@
       <workItem from="1723280939699" duration="2190000" />
       <workItem from="1723284486183" duration="20767000" />
       <workItem from="1723325382920" duration="4564000" />
-      <workItem from="1723362061585" duration="3321000" />
+      <workItem from="1723362061585" duration="3487000" />
     </task>
     <servers />
   </component>
