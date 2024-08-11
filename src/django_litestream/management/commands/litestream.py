@@ -191,7 +191,7 @@ class Command(BaseCommand):
                 ls_args[index_original_value] = db_path
             if "-config" not in ls_args and options["subcommand"] != "version":
                 ls_args = ls_args[:1] + ["-config", options["config"]] + ls_args[1:]
-            if exec_list := options["exec"]:
+            if exec_list := options.get("exec"):
                 # pass the exec cmd as a single command
                 idx = ls_args.index("-exec")
                 ls_args = ls_args[: idx + 1] + [" ".join(exec_list)]
