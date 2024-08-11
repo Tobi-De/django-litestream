@@ -2,6 +2,14 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.1.2] - 2024-08-11
+
+### 📚 Documentation
+
+- Add anze blog post
+- Improve wording and remove bad code example
+- Add note on alternate env variables
+
 ## [0.1.1] - 2024-08-11
 
 ### 🚀 Features
@@ -16,7 +24,7 @@ All notable changes to this project will be documented in this file.
 
 - Minimal doc
 
-## [0.1.0] - 2024-08-11
+## [0.0.1] - 2024-08-11
 
 ### 🐛 Bug Fixes
 
