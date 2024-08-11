@@ -5,8 +5,12 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="06ad9acc-f715-4fe6-a328-19df77ce9574" name="Changes" comment="">
+      <change afterPath="$PROJECT_DIR$/.gitignore" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/demo/.db.sqlite3-litestream/generation" afterDir="false" />
+      <change afterPath="$PROJECT_DIR$/demo/.db.sqlite3-litestream/generations/c50b07401903ea24/wal/00000000.wal" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/demo/litestream.yml" beforeDir="false" afterPath="$PROJECT_DIR$/demo/litestream.yml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/demo/db.sqlite3" beforeDir="false" />
+      <change beforePath="$PROJECT_DIR$/justfile" beforeDir="false" afterPath="$PROJECT_DIR$/justfile" afterDir="false" />
       <change beforePath="$PROJECT_DIR$/src/django_litestream/management/commands/litestream.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/django_litestream/management/commands/litestream.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
@@ -63,6 +67,7 @@
       <recent name="$PROJECT_DIR$" />
     </key>
     <key name="MoveFile.RECENT_KEYS">
+      <recent name="$PROJECT_DIR$" />
       <recent name="$PROJECT_DIR$/src/django_litestream" />
     </key>
   </component>
@@ -84,7 +89,8 @@
       <updated>1723280938477</updated>
       <workItem from="1723280939699" duration="2190000" />
       <workItem from="1723284486183" duration="20767000" />
-      <workItem from="1723325382920" duration="1947000" />
+      <workItem from="1723325382920" duration="4564000" />
+      <workItem from="1723362061585" duration="2812000" />
     </task>
     <servers />
   </component>

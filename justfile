@@ -14,3 +14,6 @@ _default:
 
 @run-demo:
     cd demo && hatch run python manage.py runserver
+
+run:
+    litestream replicate -config demo/litestream.yml -exec 'python demo/manage.py runserver'

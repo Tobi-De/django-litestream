@@ -65,6 +65,7 @@ litestream_commands = {
             NO_EXPAND_ENV_ARG,
             {
                 "name": "-exec",
+                "nargs": "+",
                 "help": "Executes a subcommand. Litestream will exit when the child process exits. "
                 "Useful for simple process management.",
                 "required": False,
@@ -188,9 +189,16 @@ class Command(BaseCommand):
                 index_original_value = ls_args.index(original_value)
                 ls_args[index_original_value] = db_path
             if "-config" not in ls_args and options["subcommand"] != "version":
-                ls_args.extend(["-config", str(options["config"])])
+                ls_args = ls_args[:1] + ["-config", options["config"]] + ls_args[1:]
+            if exec_list := options["exec"]:
+                # pass the exec cmd as a single command
+                idx = ls_args.index("-exec")
+                ls_args = ls_args[: idx + 1] + [" ".join(exec_list)]
             # print(ls_args)
-            subprocess.run([app_settings.bin_path, *ls_args])
+            try:
+                subprocess.run([app_settings.bin_path, *ls_args])
+            except KeyboardInterrupt:
+                self.stdout.write(self.style.ERROR("Litestream command interrupted"))
 
 
 def _db_location_from_alias(alias: str) -> str:
