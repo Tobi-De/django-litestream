@@ -5,12 +5,9 @@
   </component>
   <component name="ChangeListManager">
     <list default="true" id="06ad9acc-f715-4fe6-a328-19df77ce9574" name="Changes" comment="">
-      <change beforePath="$PROJECT_DIR$/demo/demo/asgi.py" beforeDir="false" afterPath="$PROJECT_DIR$/demo/demo/asgi.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/demo/demo/settings.py" beforeDir="false" afterPath="$PROJECT_DIR$/demo/demo/settings.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/demo/demo/urls.py" beforeDir="false" afterPath="$PROJECT_DIR$/demo/demo/urls.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/demo/demo/wsgi.py" beforeDir="false" afterPath="$PROJECT_DIR$/demo/demo/wsgi.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/demo/manage.py" beforeDir="false" afterPath="$PROJECT_DIR$/demo/manage.py" afterDir="false" />
-      <change beforePath="$PROJECT_DIR$/pyproject.toml" beforeDir="false" afterPath="$PROJECT_DIR$/pyproject.toml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/.idea/workspace.xml" beforeDir="false" afterPath="$PROJECT_DIR$/.idea/workspace.xml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/demo/litestream.yml" beforeDir="false" afterPath="$PROJECT_DIR$/demo/litestream.yml" afterDir="false" />
+      <change beforePath="$PROJECT_DIR$/src/django_litestream/management/commands/litestream.py" beforeDir="false" afterPath="$PROJECT_DIR$/src/django_litestream/management/commands/litestream.py" afterDir="false" />
     </list>
     <option name="SHOW_DIALOG" value="false" />
     <option name="HIGHLIGHT_CONFLICTS" value="true" />
@@ -27,18 +24,18 @@
   <component name="Git.Settings">
     <option name="RECENT_GIT_ROOT_PATH" value="$PROJECT_DIR$" />
   </component>
-  <component name="GitHubPullRequestSearchHistory"><![CDATA[{
-  "lastFilter": {
-    "state": "OPEN",
-    "assignee": "Tobi-De"
+  <component name="GitHubPullRequestSearchHistory">{
+  &quot;lastFilter&quot;: {
+    &quot;state&quot;: &quot;OPEN&quot;,
+    &quot;assignee&quot;: &quot;Tobi-De&quot;
   }
-}]]></component>
-  <component name="GithubPullRequestsUISettings"><![CDATA[{
-  "selectedUrlAndAccountId": {
-    "url": "git@github.com:Tobi-De/django-litestream.git",
-    "accountId": "d7d9e3ed-0d7c-494d-88b6-c724e1fdfa89"
+}</component>
+  <component name="GithubPullRequestsUISettings">{
+  &quot;selectedUrlAndAccountId&quot;: {
+    &quot;url&quot;: &quot;git@github.com:Tobi-De/django-litestream.git&quot;,
+    &quot;accountId&quot;: &quot;d7d9e3ed-0d7c-494d-88b6-c724e1fdfa89&quot;
   }
-}]]></component>
+}</component>
   <component name="ProjectColorInfo">{
   &quot;associatedIndex&quot;: 7
 }</component>
@@ -48,19 +45,19 @@
     <option name="showLibraryContents" value="true" />
     <option name="showMembers" value="true" />
   </component>
-  <component name="PropertiesComponent"><![CDATA[{
-  "keyToString": {
-    "RunOnceActivity.ShowReadmeOnStart": "true",
-    "git-widget-placeholder": "main",
-    "last_opened_file_path": "/home/tobi/Builds/django-litestream",
-    "node.js.detected.package.eslint": "true",
-    "node.js.detected.package.tslint": "true",
-    "node.js.selected.package.eslint": "(autodetect)",
-    "node.js.selected.package.tslint": "(autodetect)",
-    "nodejs_package_manager_path": "npm",
-    "vue.rearranger.settings.migration": "true"
+  <component name="PropertiesComponent">{
+  &quot;keyToString&quot;: {
+    &quot;RunOnceActivity.ShowReadmeOnStart&quot;: &quot;true&quot;,
+    &quot;git-widget-placeholder&quot;: &quot;main&quot;,
+    &quot;last_opened_file_path&quot;: &quot;/home/tobi/Builds/django-litestream&quot;,
+    &quot;node.js.detected.package.eslint&quot;: &quot;true&quot;,
+    &quot;node.js.detected.package.tslint&quot;: &quot;true&quot;,
+    &quot;node.js.selected.package.eslint&quot;: &quot;(autodetect)&quot;,
+    &quot;node.js.selected.package.tslint&quot;: &quot;(autodetect)&quot;,
+    &quot;nodejs_package_manager_path&quot;: &quot;npm&quot;,
+    &quot;vue.rearranger.settings.migration&quot;: &quot;true&quot;
   }
-}]]></component>
+}</component>
   <component name="RecentsManager">
     <key name="CopyFile.RECENT_KEYS">
       <recent name="$PROJECT_DIR$" />
@@ -86,7 +83,8 @@
       <option name="presentableId" value="Default" />
       <updated>1723280938477</updated>
       <workItem from="1723280939699" duration="2190000" />
-      <workItem from="1723284486183" duration="20140000" />
+      <workItem from="1723284486183" duration="20767000" />
+      <workItem from="1723325382920" duration="1947000" />
     </task>
     <servers />
   </component>
