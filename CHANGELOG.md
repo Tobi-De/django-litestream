@@ -2,6 +2,20 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.1.1] - 2024-08-11
+
+### 🚀 Features
+
+- Add support for litestream logging and metrics
+
+### 🐛 Bug Fixes
+
+- Exec is optional
+
+### 📚 Documentation
+
+- Minimal doc
+
 ## [0.1.0] - 2024-08-11
 
 ### 🐛 Bug Fixes
