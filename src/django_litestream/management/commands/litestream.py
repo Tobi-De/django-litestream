@@ -8,7 +8,6 @@ from django.conf import settings
 from django.core.management import BaseCommand
 from yaml import dump
 
-
 from ...conf import app_settings
 
 CONFIG_ARG = {
@@ -156,10 +155,6 @@ class Command(BaseCommand):
         },
     }
 
-    def __init__(self, *args, **kwargs):
-        super().__init__(*args, **kwargs)
-        self.parsers = {}
-
     def add_arguments(self, parser: ArgumentParser) -> None:
         subcommands = parser.add_subparsers(help="subcommands", dest="subcommand")
         init_cmd = subcommands.add_parser(
@@ -176,16 +171,13 @@ class Command(BaseCommand):
                 help=details["description"],
                 description=details["description"],
             )
-            self.parsers[ls_cmd] = parser
             for args in details["arguments"]:
                 _add_argument(parser, args)
 
     def handle(self, *_, **options) -> None:
         if options["subcommand"] == "init":
             self.init(filepath=options["config"])
-            self.stdout.write(
-                self.style.SUCCESS("Litestream configuration file created")
-            )
+            self.stdout.write(self.style.SUCCESS("Litestream configuration file created"))
         elif options["subcommand"] == "version":
             subprocess.run([app_settings.bin_path, "version"])
         elif len(sys.argv) == 2:

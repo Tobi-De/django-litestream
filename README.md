@@ -199,10 +199,9 @@ dj litestream replicate
 dj litestream replicate -exec "gunicorn myproject.wsgi:application"
 ```
 
-This is the command you would typically run in production using a process manager as it own process, you can 
-run it separate (the first example) or use it to run your main django process, so it would basically act a process manager
-itself and run both the replicate and the django process, and the replication processs wil exit wwhen you web server will
-shut down.
+This is the command you will run in production using a process manager as its own process. You can run it separately (the first example) or 
+use it to run your main Django process (second example). It would basically act as a process manager itself and run both the replicate 
+and the Django process. The replication process will exit when your web server shuts down.
 
 #### litestream restore
 
