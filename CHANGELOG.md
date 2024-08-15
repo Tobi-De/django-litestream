@@ -2,6 +2,13 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.1.4] - 2024-08-15
+
+### 🚜 Refactor
+
+- Properly parse args
+- Move init to class method
+
 ## [0.1.2] - 2024-08-11
 
 ### 📚 Documentation
