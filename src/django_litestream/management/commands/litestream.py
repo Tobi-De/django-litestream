@@ -4,6 +4,9 @@ import subprocess
 from itertools import chain
 from pathlib import Path
 from typing import TYPE_CHECKING
+import sqlite3
+import time
+import datetime
 
 from django.conf import settings
 from django.core.management import BaseCommand
@@ -181,6 +184,13 @@ class Command(BaseCommand):
             for args in details["arguments"]:
                 _add_argument(parser, args)
 
+        verify_cmd = subcommands.add_parser(
+            name="verify",
+            help="Verify the integrity of backed-up databases",
+            description="Verify the integrity of backed-up databases",
+        )
+        _add_argument(verify_cmd, DB_PATH_ARG)
+
     def handle(self, *_, **options) -> None:
         if options["subcommand"] == "init":
             self.init(filepath=options["config"])
@@ -188,7 +198,9 @@ class Command(BaseCommand):
                 self.style.SUCCESS("Litestream configuration file created")
             )
         elif options["subcommand"] == "version":
-            subprocess.run([app_settings.bin_path, "version"], check=False)
+            subprocess.run([app_settings.bin_path, "version"])
+        elif options["subcommand"] == "verify":
+            self.verify(_db_location_from_alias(options["db_path"]))
         elif not options["subcommand"]:
             self.print_help("manage", "litestream")
         else:
@@ -260,6 +272,14 @@ class Command(BaseCommand):
             dbs.extend(app_settings.extend_dbs)
         with open(filepath, "w") as f:
             dump(config, f, sort_keys=False)
+
+    def verify(self, db_path: str | Path):
+        db = sqlite3.connect(db_path)
+        cursor = db.cursor()
+        cursor.execute("CREATE TABLE _litestream_verification(id INTEGER PRIMARY KEY, created TIMESTAMP) strict;")
+        cursor.execute("INSERT INTO _litestream_verification VALUES (%s)", (datetime.now()))
+        time.sleep(10)
+        db.close()
 
 
 def _db_location_from_alias(alias: str) -> str:
