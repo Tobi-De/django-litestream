@@ -180,10 +180,12 @@ class Command(BaseCommand):
             self.stdout.write(self.style.SUCCESS("Litestream configuration file created"))
         elif options["subcommand"] == "version":
             subprocess.run([app_settings.bin_path, "version"])
-        elif len(sys.argv) == 2:
+        elif not options["subcommand"]:
             self.print_help("manage", "litestream")
         else:
             ls_args = self._parse_args(options["subcommand"], options)
+            if options["verbosity"] > 2:
+                self.stdout.write(f"Options: {options}")
             if options["verbosity"] > 1:
                 self.stdout.write(f"Litestream bin: {app_settings.bin_path}")
                 self.stdout.write(f"Litestream args: {ls_args}")
