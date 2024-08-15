@@ -140,3 +140,6 @@ dmypy.json
 
 # MacOs
 .DS_Store
+
+db.sqlite3-shm
+db.sqlite3-wal

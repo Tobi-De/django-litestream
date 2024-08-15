@@ -32,4 +32,3 @@ bumpver VERSION:
     git commit -m "Generate changelog for version ${version}"
     git tag -f "v${version}"
     git push && git push --tags
-
