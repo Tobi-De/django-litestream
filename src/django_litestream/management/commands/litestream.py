@@ -3,11 +3,11 @@ import sys
 from argparse import ArgumentParser
 from itertools import chain
 from pathlib import Path
-from time import sleep
 
 from django.conf import settings
 from django.core.management import BaseCommand
 from yaml import dump
+
 
 from ...conf import app_settings
 
@@ -22,7 +22,7 @@ CONFIG_ARG = {
 DB_PATH_ARG = {
     "name": "db_path",
     "type": Path,
-    "help": "Path to the SQLite database file",
+    "help": "Path to the SQLite database file or django database alias",
 }
 
 DB_PATH_OR_REPLICA_URL_ARG = {
@@ -182,8 +182,10 @@ class Command(BaseCommand):
 
     def handle(self, *_, **options) -> None:
         if options["subcommand"] == "init":
-            _init(filepath=options["config"])
-            self.stdout.write(self.style.SUCCESS("Litestream configuration file created"))
+            self.init(filepath=options["config"])
+            self.stdout.write(
+                self.style.SUCCESS("Litestream configuration file created")
+            )
         elif options["subcommand"] == "version":
             subprocess.run([app_settings.bin_path, "version"])
         elif len(sys.argv) == 2:
@@ -226,45 +228,42 @@ class Command(BaseCommand):
                 positionals.append(str(value))
         return [subcommand, *list(chain(optionals)), *positionals]
 
+    def init(self, filepath: Path):
+        dbs = app_settings.dbs if app_settings.dbs else []
+        config = {"dbs": dbs}
+        if app_settings.logging:
+            config["logging"] = app_settings.logging
+        if app_settings.addr:
+            config["addr"] = app_settings.addr
+        if not dbs:
+            for db_settings in settings.DATABASES.values():
+                if db_settings["ENGINE"] == "django.db.backends.sqlite3":
+                    location = str(db_settings["NAME"])
+                    dbs.append(
+                        {
+                            "path": location,
+                            "replicas": [
+                                {
+                                    "type": "s3",
+                                    "bucket": "$LITESTREAM_REPLICA_BUCKET",
+                                    "path": Path(location).name,
+                                    "access-key-id": "$LITESTREAM_ACCESS_KEY_ID",
+                                    "secret-access-key": "$LITESTREAM_SECRET_ACCESS_KEY",
+                                }
+                            ],
+                        }
+                    )
+        if app_settings.extend_dbs:
+            dbs.extend(app_settings.extend_dbs)
+        with open(filepath, "w") as f:
+            dump(config, f, sort_keys=False)
+
 
 def _db_location_from_alias(alias: str) -> str:
     db_settings = settings.DATABASES.get(alias, {})
     if db_settings.get("ENGINE") == "django.db.backends.sqlite3":
         return db_settings["NAME"]
     return alias
-
-
-def _init(filepath: Path):
-    if app_settings.dbs:
-        dbs = app_settings.dbs
-    else:
-        dbs = []
-        for db_settings in settings.DATABASES.values():
-            if db_settings["ENGINE"] == "django.db.backends.sqlite3":
-                location = str(db_settings["NAME"])
-                dbs.append(
-                    {
-                        "path": location,
-                        "replicas": [
-                            {
-                                "type": "s3",
-                                "bucket": "$LITESTREAM_REPLICA_BUCKET",
-                                "path": Path(location).name,
-                                "access-key-id": "$LITESTREAM_ACCESS_KEY_ID",
-                                "secret-access-key": "$LITESTREAM_SECRET_ACCESS_KEY",
-                            }
-                        ],
-                    }
-                )
-        if app_settings.extend_dbs:
-            dbs.extend(app_settings.extend_dbs)
-    config = {"dbs": dbs}
-    if app_settings.logging:
-        config["logging"] = app_settings.logging
-    if app_settings.addr:
-        config["addr"] = app_settings.addr
-    with open(filepath, "w") as f:
-        dump(config, f, sort_keys=False)
 
 
 def _add_argument(parser: ArgumentParser, args: dict) -> None:
