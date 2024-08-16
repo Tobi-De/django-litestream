@@ -2,6 +2,16 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.1.6] - 2024-08-16
+
+### 🧪 Testing
+
+- Add basic tests
+
+### ⚙️ Miscellaneous Tasks
+
+- Add setup recipe
+
 ## [0.1.5] - 2024-08-15
 
 ### 🐛 Bug Fixes
@@ -37,7 +47,7 @@ All notable changes to this project will be documented in this file.
 
 - Minimal doc
 
-## [0.0.1] - 2024-08-11
+## [0.1.0] - 2024-08-11
 
 ### 🐛 Bug Fixes
 
