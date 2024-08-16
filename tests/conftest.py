@@ -12,7 +12,7 @@ LITESTREAM = {
 }
 
 
-def pytest_configure(config):  # type: IGNORE
+def pytest_configure(config):
     logging.disable(logging.CRITICAL)
 
     settings.configure(
