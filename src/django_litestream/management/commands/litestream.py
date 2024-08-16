@@ -1,14 +1,18 @@
+from __future__ import annotations
+
 import subprocess
-import sys
-from argparse import ArgumentParser
 from itertools import chain
 from pathlib import Path
+from typing import TYPE_CHECKING
 
 from django.conf import settings
 from django.core.management import BaseCommand
 from yaml import dump
 
-from ...conf import app_settings
+from django_litestream.conf import app_settings
+
+if TYPE_CHECKING:
+    from argparse import ArgumentParser
 
 CONFIG_ARG = {
     "name": "-config",
@@ -45,10 +49,7 @@ def _get_replica_arg(subcommand: str) -> dict:
     }
 
 
-class Command(BaseCommand):
-    help = "Litestream is a tool for replicating SQLite databases."
-
-    litestream_commands = {
+LITESTREAM_COMMANDS = {
         "databases": {
             "description": "List databases specified in config file",
             "arguments": [CONFIG_ARG, NO_EXPAND_ENV_ARG],
@@ -74,10 +75,6 @@ class Command(BaseCommand):
                     "Useful for simple process management.",
                     "required": False,
                 },
-                # {
-                #     **DB_PATH_ARG,
-                # },
-                # {"name": "replica_url", "help": "URL of the replicas", "action": "append"}
             ],
         },
         "restore": {
@@ -86,6 +83,11 @@ class Command(BaseCommand):
                 DB_PATH_OR_REPLICA_URL_ARG,
                 CONFIG_ARG,
                 NO_EXPAND_ENV_ARG,
+                {
+                    "name": "-replica",
+                    "help": "Restore from a specific replica.Defaults to replica with latest data.",
+                    "required": False,
+                },
                 {
                     "name": "-o",
                     "type": Path,
@@ -155,6 +157,11 @@ class Command(BaseCommand):
         },
     }
 
+
+class Command(BaseCommand):
+    help = "Litestream is a tool for replicating SQLite databases."
+
+
     def add_arguments(self, parser: ArgumentParser) -> None:
         subcommands = parser.add_subparsers(help="subcommands", dest="subcommand")
         init_cmd = subcommands.add_parser(
@@ -165,7 +172,7 @@ class Command(BaseCommand):
 
         _add_argument(init_cmd, CONFIG_ARG)
 
-        for ls_cmd, details in self.litestream_commands.items():
+        for ls_cmd, details in LITESTREAM_COMMANDS.items():
             parser = subcommands.add_parser(
                 ls_cmd,
                 help=details["description"],
@@ -177,27 +184,29 @@ class Command(BaseCommand):
     def handle(self, *_, **options) -> None:
         if options["subcommand"] == "init":
             self.init(filepath=options["config"])
-            self.stdout.write(self.style.SUCCESS("Litestream configuration file created"))
+            self.stdout.write(
+                self.style.SUCCESS("Litestream configuration file created")
+            )
         elif options["subcommand"] == "version":
-            subprocess.run([app_settings.bin_path, "version"])
+            subprocess.run([app_settings.bin_path, "version"], check=False)
         elif not options["subcommand"]:
             self.print_help("manage", "litestream")
         else:
-            ls_args = self._parse_args(options["subcommand"], options)
+            ls_args = self.parse_args(options["subcommand"], options)
             if options["verbosity"] > 2:
                 self.stdout.write(f"Options: {options}")
             if options["verbosity"] > 1:
                 self.stdout.write(f"Litestream bin: {app_settings.bin_path}")
                 self.stdout.write(f"Litestream args: {ls_args}")
             try:
-                subprocess.run([app_settings.bin_path, *ls_args])
+                subprocess.run([app_settings.bin_path, *ls_args], check=False)
             except KeyboardInterrupt:
                 self.stdout.write(self.style.ERROR("Litestream command interrupted"))
 
-    def _parse_args(self, subcommand: str, options: dict) -> list[str]:
+    def parse_args(self, subcommand: str, options: dict) -> list[str]:
         positionals = []
         optionals = []
-        for argument in self.litestream_commands[subcommand]["arguments"]:
+        for argument in LITESTREAM_COMMANDS[subcommand]["arguments"]:
             arg_name = argument["name"]
             dest = arg_name.strip("-").replace("-", "_")
             if dest not in options:

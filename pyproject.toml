@@ -1,21 +1,29 @@
 [build-system]
-requires = ["hatchling"]
 build-backend = "hatchling.build"
+
+requires = [ "hatchling" ]
 
 [project]
 name = "django-litestream"
-dynamic = ["version"]
-description = 'Django integration with litestream, a a standalone streaming replication tool for SQLite.'
+description = "Django integration with litestream, a a standalone streaming replication tool for SQLite."
 readme = "README.md"
-requires-python = ">=3.8"
-license = {file = "LICENSE.txt"}
-keywords = ["sqlite", "litestream", "django", "sqlite3", "replication", "backup"]
+keywords = [ "backup", "django", "litestream", "replication", "sqlite", "sqlite3" ]
+license = { file = "LICENSE.txt" }
 authors = [
   { name = "Tobi DEGNON", email = "tobidegnon@proton.me" },
 ]
+requires-python = ">=3.8"
 classifiers = [
   "Development Status :: 4 - Beta",
+  "Framework :: Django :: 4.2",
+  "Framework :: Django :: 5.0",
+  "Framework :: Django :: 5.1",
+  "Intended Audience :: Developers",
+  "License :: OSI Approved :: MIT License",
+  "Natural Language :: English",
+
   "Programming Language :: Python",
+  "Programming Language :: Python :: 3 :: Only",
   "Programming Language :: Python :: 3.8",
   "Programming Language :: Python :: 3.9",
   "Programming Language :: Python :: 3.10",
@@ -23,20 +31,13 @@ classifiers = [
   "Programming Language :: Python :: 3.12",
   "Programming Language :: Python :: Implementation :: CPython",
   "Programming Language :: Python :: Implementation :: PyPy",
-  "License :: OSI Approved :: MIT License",
-  "Framework :: Django :: 4.2",
-  "Framework :: Django :: 5.0",
-  "Framework :: Django :: 5.1",
-  "Intended Audience :: Developers",
-  "Natural Language :: English",
-
 ]
-dependencies = ["django>=4.2", "litestream-bin", "pyyaml"]
+dynamic = [ "version" ]
+dependencies = [ "django>=4.2", "litestream-bin", "pyyaml" ]
 
-[project.urls]
-Documentation = "https://github.com/Tobi-De/django-litestream#readme"
-Issues = "https://github.com/Tobi-De/django-litestream/issues"
-Source = "https://github.com/Tobi-De/django-litestream"
+urls.Documentation = "https://github.com/Tobi-De/django-litestream#readme"
+urls.Issues = "https://github.com/Tobi-De/django-litestream/issues"
+urls.Source = "https://github.com/Tobi-De/django-litestream"
 
 [tool.hatch.version]
 path = "src/django_litestream/__about__.py"
@@ -47,6 +48,7 @@ dependencies = [
   "reorder-python-imports",
   "bump-my-version",
   "git-cliff",
+  "pytest",
 ]
 
 [tool.hatch.envs.types]
@@ -57,7 +59,7 @@ extra-dependencies = [
 check = "mypy --install-types --non-interactive {args:src/django_litestream tests}"
 
 [tool.coverage.run]
-source_pkgs = ["django_litestream", "tests"]
+source_pkgs = [ "django_litestream", "tests" ]
 branch = true
 parallel = true
 omit = [
@@ -65,8 +67,8 @@ omit = [
 ]
 
 [tool.coverage.paths]
-django_litestream = ["src/django_litestream", "*/django-litestream/src/django_litestream"]
-tests = ["tests", "*/django-litestream/tests"]
+django_litestream = [ "src/django_litestream", "*/django-litestream/src/django_litestream" ]
+tests = [ "tests", "*/django-litestream/tests" ]
 
 [tool.coverage.report]
 exclude_lines = [

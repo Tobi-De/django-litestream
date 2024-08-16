@@ -8,6 +8,12 @@ _default:
     hatch env create
     hatch run pre-commit install
 
+@install:
+    hatch run python -- --version
+
+@test:
+    hatch run pytest
+
 @fmt:
     hatch fmt --formatter
     just --fmt --unstable
