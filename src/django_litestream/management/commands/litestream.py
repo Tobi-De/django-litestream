@@ -201,7 +201,7 @@ class Command(BaseCommand):
             try:
                 subprocess.run([app_settings.bin_path, *ls_args], check=False)
             except KeyboardInterrupt:
-                self.stdout.write(self.style.ERROR("Litestream command interrupted"))
+                self.stdout.write("Litestream command interrupted")
 
     def parse_args(self, subcommand: str, options: dict) -> list[str]:
         positionals = []
