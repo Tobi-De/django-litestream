@@ -7,6 +7,7 @@ from typing import TYPE_CHECKING
 import sqlite3
 import time
 import datetime
+import secrets
 
 from django.conf import settings
 from django.core.management import BaseCommand
@@ -53,117 +54,116 @@ def _get_replica_arg(subcommand: str) -> dict:
 
 
 LITESTREAM_COMMANDS = {
-        "databases": {
-            "description": "List databases specified in config file",
-            "arguments": [CONFIG_ARG, NO_EXPAND_ENV_ARG],
-        },
-        "generations": {
-            "description": "List available generations for a database",
-            "arguments": [
-                CONFIG_ARG,
-                NO_EXPAND_ENV_ARG,
-                DB_PATH_OR_REPLICA_URL_ARG,
-                _get_replica_arg("generations"),
-            ],
-        },
-        "replicate": {
-            "description": "Runs a server to replicate databases",
-            "arguments": [
-                CONFIG_ARG,
-                NO_EXPAND_ENV_ARG,
-                {
-                    "name": "-exec",
-                    "nargs": "+",
-                    "help": "Executes a subcommand. Litestream will exit when the child process exits. "
-                    "Useful for simple process management.",
-                    "required": False,
-                },
-            ],
-        },
-        "restore": {
-            "description": "Recovers database backup from a replica",
-            "arguments": [
-                DB_PATH_OR_REPLICA_URL_ARG,
-                CONFIG_ARG,
-                NO_EXPAND_ENV_ARG,
-                {
-                    "name": "-replica",
-                    "help": "Restore from a specific replica.Defaults to replica with latest data.",
-                    "required": False,
-                },
-                {
-                    "name": "-o",
-                    "type": Path,
-                    "help": "Output path of the restored database. Defaults to original DB path.",
-                    "required": False,
-                },
-                {
-                    "name": "-if-replica-exists",
-                    "action": "store_true",
-                    "help": "Returns exit code of 0 if no backups found.",
-                    "required": False,
-                },
-                {
-                    "name": "-if-db-not-exists",
-                    "action": "store_true",
-                    "help": "Returns exit code of 0 if the database already exists.",
-                    "required": False,
-                },
-                {
-                    "name": "-parallelism",
-                    "type": int,
-                    "help": "Determines the number of WAL files downloaded in parallel. Defaults to 8",
-                    "required": False,
-                },
-                {
-                    "name": "-generation",
-                    "help": "Restore from a specific generation. Defaults to generation with latest data",
-                    "required": False,
-                },
-                {
-                    "name": "-index",
-                    "type": int,
-                    "help": "Restore up to a specific WAL index (inclusive). Defaults to use the highest available index.",
-                    "required": False,
-                },
-                {
-                    "name": "-timestamp",
-                    # "type": datetime,
-                    "help": "Restore to a specific point-in-time. Defaults to use the latest available backup.",
-                    "required": False,
-                },
-            ],
-        },
-        "snapshots": {
-            "description": "List available snapshots for a database",
-            "arguments": [
-                DB_PATH_OR_REPLICA_URL_ARG,
-                CONFIG_ARG,
-                NO_EXPAND_ENV_ARG,
-                _get_replica_arg("snapshots"),
-            ],
-        },
-        "version": {"description": "Prints the binary version", "arguments": []},
-        "wal": {
-            "description": "List available WAL files for a database",
-            "arguments": [
-                CONFIG_ARG,
-                NO_EXPAND_ENV_ARG,
-                DB_PATH_OR_REPLICA_URL_ARG,
-                {
-                    "name": "-generation",
-                    "help": "Optional, filter by a specific generation.",
-                    "required": False,
-                },
-                _get_replica_arg("snapshots"),
-            ],
-        },
-    }
+    "databases": {
+        "description": "List databases specified in config file",
+        "arguments": [CONFIG_ARG, NO_EXPAND_ENV_ARG],
+    },
+    "generations": {
+        "description": "List available generations for a database",
+        "arguments": [
+            CONFIG_ARG,
+            NO_EXPAND_ENV_ARG,
+            DB_PATH_OR_REPLICA_URL_ARG,
+            _get_replica_arg("generations"),
+        ],
+    },
+    "replicate": {
+        "description": "Runs a server to replicate databases",
+        "arguments": [
+            CONFIG_ARG,
+            NO_EXPAND_ENV_ARG,
+            {
+                "name": "-exec",
+                "nargs": "+",
+                "help": "Executes a subcommand. Litestream will exit when the child process exits. "
+                "Useful for simple process management.",
+                "required": False,
+            },
+        ],
+    },
+    "restore": {
+        "description": "Recovers database backup from a replica",
+        "arguments": [
+            DB_PATH_OR_REPLICA_URL_ARG,
+            CONFIG_ARG,
+            NO_EXPAND_ENV_ARG,
+            {
+                "name": "-replica",
+                "help": "Restore from a specific replica.Defaults to replica with latest data.",
+                "required": False,
+            },
+            {
+                "name": "-o",
+                "type": Path,
+                "help": "Output path of the restored database. Defaults to original DB path.",
+                "required": False,
+            },
+            {
+                "name": "-if-replica-exists",
+                "action": "store_true",
+                "help": "Returns exit code of 0 if no backups found.",
+                "required": False,
+            },
+            {
+                "name": "-if-db-not-exists",
+                "action": "store_true",
+                "help": "Returns exit code of 0 if the database already exists.",
+                "required": False,
+            },
+            {
+                "name": "-parallelism",
+                "type": int,
+                "help": "Determines the number of WAL files downloaded in parallel. Defaults to 8",
+                "required": False,
+            },
+            {
+                "name": "-generation",
+                "help": "Restore from a specific generation. Defaults to generation with latest data",
+                "required": False,
+            },
+            {
+                "name": "-index",
+                "type": int,
+                "help": "Restore up to a specific WAL index (inclusive). Defaults to use the highest available index.",
+                "required": False,
+            },
+            {
+                "name": "-timestamp",
+                # "type": datetime,
+                "help": "Restore to a specific point-in-time. Defaults to use the latest available backup.",
+                "required": False,
+            },
+        ],
+    },
+    "snapshots": {
+        "description": "List available snapshots for a database",
+        "arguments": [
+            DB_PATH_OR_REPLICA_URL_ARG,
+            CONFIG_ARG,
+            NO_EXPAND_ENV_ARG,
+            _get_replica_arg("snapshots"),
+        ],
+    },
+    "version": {"description": "Prints the binary version", "arguments": []},
+    "wal": {
+        "description": "List available WAL files for a database",
+        "arguments": [
+            CONFIG_ARG,
+            NO_EXPAND_ENV_ARG,
+            DB_PATH_OR_REPLICA_URL_ARG,
+            {
+                "name": "-generation",
+                "help": "Optional, filter by a specific generation.",
+                "required": False,
+            },
+            _get_replica_arg("snapshots"),
+        ],
+    },
+}
 
 
 class Command(BaseCommand):
     help = "Litestream is a tool for replicating SQLite databases."
-
 
     def add_arguments(self, parser: ArgumentParser) -> None:
         subcommands = parser.add_subparsers(help="subcommands", dest="subcommand")
@@ -276,10 +276,44 @@ class Command(BaseCommand):
     def verify(self, db_path: str | Path):
         db = sqlite3.connect(db_path)
         cursor = db.cursor()
-        cursor.execute("CREATE TABLE _litestream_verification(id INTEGER PRIMARY KEY, created TIMESTAMP) strict;")
-        cursor.execute("INSERT INTO _litestream_verification VALUES (%s)", (datetime.now()))
+
+        cursor.execute(
+            """
+            CREATE TABLE IF NOT EXISTS _litestream_verification(id INTEGER PRIMARY KEY, created TIMESTAMP) strict;"""
+        )
+
+        now = datetime.now()
+
+        cursor.execute(
+            "INSERT INTO _litestream_verification (created) VALUES (?)", (now,)
+        )
+        db.commit()
+
         time.sleep(10)
+
         db.close()
+
+        temp_db_path = db_path.with_name(
+            f"{db_path.stem}_temp_{secrets.token_hex()}_{db_path.suffix}"
+        )
+        subprocess.run(
+            [app_settings.bin_path, "restore", "-o", temp_db_path, str(db_path)],
+            check=True,
+        )
+
+        db = sqlite3.connect(temp_db_path)
+        cursor = db.cursor()
+        cursor.execute(
+            "SELECT * FROM _litestream_verification WHERE created = ?", (now,)
+        )
+        row = cursor.fetchone()
+
+        db.close()
+
+        if not row:
+            self.stdout.write("Database verification failed")
+        else:
+            self.stdout.write("Database verification successful")
 
 
 def _db_location_from_alias(alias: str) -> str:
