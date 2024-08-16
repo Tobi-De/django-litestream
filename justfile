@@ -4,6 +4,10 @@ set dotenv-load := true
 _default:
     @just --list --unsorted
 
+@setup:
+    hatch env create
+    hatch run pre-commit install
+
 @fmt:
     hatch fmt --formatter
     just --fmt --unstable
