@@ -1,16 +1,20 @@
 from __future__ import annotations
 
+import datetime as dt
+import secrets
+import sqlite3
 import subprocess
+import tempfile
+import time
 from itertools import chain
 from pathlib import Path
 from typing import TYPE_CHECKING
-import sqlite3
-import time
-import datetime
-import secrets
 
 from django.conf import settings
 from django.core.management import BaseCommand
+from rich.progress import Progress
+from rich.progress import SpinnerColumn
+from rich.progress import TextColumn
 from yaml import dump
 
 from django_litestream.conf import app_settings
@@ -28,7 +32,7 @@ CONFIG_ARG = {
 
 DB_PATH_ARG = {
     "name": "db_path",
-    "type": Path,
+    "type": str,
     "help": "Path to the SQLite database file or django database alias",
 }
 
@@ -190,17 +194,16 @@ class Command(BaseCommand):
             description="Verify the integrity of backed-up databases",
         )
         _add_argument(verify_cmd, DB_PATH_ARG)
+        _add_argument(verify_cmd, CONFIG_ARG)
 
     def handle(self, *_, **options) -> None:
         if options["subcommand"] == "init":
             self.init(filepath=options["config"])
-            self.stdout.write(
-                self.style.SUCCESS("Litestream configuration file created")
-            )
+            self.stdout.write(self.style.SUCCESS("Litestream configuration file created"))
         elif options["subcommand"] == "version":
             subprocess.run([app_settings.bin_path, "version"])
         elif options["subcommand"] == "verify":
-            self.verify(_db_location_from_alias(options["db_path"]))
+            self.verify(_db_location_from_alias(options["db_path"]), config=options["config"])
         elif not options["subcommand"]:
             self.print_help("manage", "litestream")
         else:
@@ -273,47 +276,44 @@ class Command(BaseCommand):
         with open(filepath, "w") as f:
             dump(config, f, sort_keys=False)
 
-    def verify(self, db_path: str | Path):
-        db = sqlite3.connect(db_path)
-        cursor = db.cursor()
+    def verify(self, db_path: str | Path, config: str | Path):
+        with Progress(
+            SpinnerColumn(), TextColumn("[progress.description]{task.description}"), transient=True
+        ) as progress:
+            progress.add_task("Verifying", total=None)
+            data = (secrets.token_hex(), dt.datetime.now())
+            with sqlite3.connect(db_path) as db:
+                cursor = db.cursor()
+                cursor.execute(
+                    """
+                    CREATE TABLE IF NOT EXISTS _litestream_verification(id INTEGER PRIMARY KEY, code TEXT, created TEXT) strict;"""
+                )
+                cursor.execute("INSERT INTO _litestream_verification (code, created) VALUES (?, ?)", data)
+                db.commit()
 
-        cursor.execute(
-            """
-            CREATE TABLE IF NOT EXISTS _litestream_verification(id INTEGER PRIMARY KEY, created TIMESTAMP) strict;"""
-        )
+            time.sleep(10)
 
-        now = datetime.now()
+            with tempfile.TemporaryDirectory() as temp_dir:
+                temp_db_path = Path(temp_dir) / db_path.with_suffix(".restored").name
+                result = subprocess.run(
+                    [app_settings.bin_path, "restore", "-config", config, "-o", temp_db_path, db_path],
+                    stdout=subprocess.PIPE,
+                )
+                if result.returncode != 0:
+                    self.stdout.write(self.style.ERROR("Database restore failed"))
+                    exit(1)
 
-        cursor.execute(
-            "INSERT INTO _litestream_verification (created) VALUES (?)", (now,)
-        )
-        db.commit()
-
-        time.sleep(10)
-
-        db.close()
-
-        temp_db_path = db_path.with_name(
-            f"{db_path.stem}_temp_{secrets.token_hex()}_{db_path.suffix}"
-        )
-        subprocess.run(
-            [app_settings.bin_path, "restore", "-o", temp_db_path, str(db_path)],
-            check=True,
-        )
-
-        db = sqlite3.connect(temp_db_path)
-        cursor = db.cursor()
-        cursor.execute(
-            "SELECT * FROM _litestream_verification WHERE created = ?", (now,)
-        )
-        row = cursor.fetchone()
-
-        db.close()
+                with sqlite3.connect(temp_db_path) as db:
+                    cursor = db.cursor()
+                    cursor.execute(
+                        "SELECT code, created FROM _litestream_verification WHERE code = ? and created = ?", data
+                    )
+                    row = cursor.fetchone()
 
         if not row:
-            self.stdout.write("Database verification failed")
-        else:
-            self.stdout.write("Database verification successful")
+            self.stdout.write(self.style.ERROR("Oops! Backup data seems to be out of sync"))
+            exit(1)
+        self.stdout.write(self.style.SUCCESS("All good! Backup data is in sync"))
 
 
 def _db_location_from_alias(alias: str) -> str:

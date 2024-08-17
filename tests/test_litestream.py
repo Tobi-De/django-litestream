@@ -2,11 +2,11 @@ from __future__ import annotations
 
 import pytest
 from django.test import override_settings
-from yaml import Loader, load
-
-from django_litestream.management.commands.litestream import Command
+from yaml import load
+from yaml import Loader
 
 from .conftest import LITESTREAM
+from django_litestream.management.commands.litestream import Command
 
 
 @pytest.fixture
@@ -103,7 +103,7 @@ def test_init_override_db(temp_config_file):
                     }
                 ],
             }
-        ]
+        ],
     }
     with override_settings(LITESTREAM=litestream_config):
         Command().init(temp_config_file)
