@@ -2,6 +2,12 @@
 
 All notable changes to this project will be documented in this file.
 
+## [0.2.0] - 2024-08-18
+
+### 🚀 Features
+
+- Add verify command (#3)
+
 ## [0.1.6] - 2024-08-16
 
 ### 🧪 Testing
@@ -47,7 +53,7 @@ All notable changes to this project will be documented in this file.
 
 - Minimal doc
 
-## [0.1.0] - 2024-08-11
+## [0.0.1] - 2024-08-11
 
 ### 🐛 Bug Fixes
 
