@@ -21,10 +21,13 @@ This package installs and integrates [litestream](https://litestream.io), the SQ
     - [litestream generations](#litestream-generations)
     - [litestream replicate](#litestream-replicate)
     - [litestream restore](#litestream-restore)
+    - [litestream verify](#litestream-verify)
     - [litestream snapshots](#litestream-snapshots)
     - [litestream wal](#litestream-wal)
     - [litestream version](#litestream-version)
-- [License](#license)
+- [License](#license)Exists,
+Can be opened by SQLite, and
+Has up-to-date data.
 
 ## Installation
 
@@ -213,6 +216,26 @@ Examples:
 dj litestream restore default
 dj litestream restore -if-replica-exists default
 ```
+
+#### litestream verify
+
+This command verifies the integrity of your backed-up databases. This process is inspired by the [verify command](https://github.com/fractaledmind/litestream-ruby?tab=readme-ov-file#verification) of the `litestream-ruby` gem.
+The verification process involves the following steps:
+
+1. Add Verification Data: A new row is added to a `_litestream_verification` table in the specified database. This table is created if it does not already exist. The row contains a unique code and the current timestamp.
+2. Wait for Replication: The command waits for 10 seconds to allow Litestream to replicate the new row to the configured storage providers.
+3. Restore Backup: The latest backup is restored from the storage provider to a temporary location.
+4. Check Verification Data: The restored database is checked to ensure that the verification row is present. This ensures that the backup is both restorable and up-to-date.
+
+If the verification row is not found in the restored database, the command will return an error indicating that the backup data is out of sync. If the row is found, the command confirms that the backup data is in sync.
+
+Examples:
+
+```console
+dj litestream verify default
+```
+
+This check ensures that the restored database file Exists, can be opened by SQLite, and has up-to-date data.
 
 #### litestream snapshots
 
