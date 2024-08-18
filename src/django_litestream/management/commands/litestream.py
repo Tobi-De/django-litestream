@@ -203,7 +203,10 @@ class Command(BaseCommand):
         elif options["subcommand"] == "version":
             subprocess.run([app_settings.bin_path, "version"])
         elif options["subcommand"] == "verify":
-            self.verify(_db_location_from_alias(options["db_path"]), config=options["config"])
+            exit_code, msg = self.verify(_db_location_from_alias(options["db_path"]), config=options["config"])
+            style =  self.style.ERROR if exit_code else self.style.SUCCESS
+            self.stdout.write(style(msg))
+            exit(exit_code)
         elif not options["subcommand"]:
             self.print_help("manage", "litestream")
         else:
@@ -276,7 +279,7 @@ class Command(BaseCommand):
         with open(filepath, "w") as f:
             dump(config, f, sort_keys=False)
 
-    def verify(self, db_path: str | Path, config: str | Path):
+    def verify(self, db_path: str | Path, config: str | Path)->tuple[int, str]:
         with Progress(
             SpinnerColumn(), TextColumn("[progress.description]{task.description}"), transient=True
         ) as progress:
@@ -300,8 +303,7 @@ class Command(BaseCommand):
                     stdout=subprocess.PIPE,
                 )
                 if result.returncode != 0:
-                    self.stdout.write(self.style.ERROR("Database restore failed"))
-                    exit(1)
+                    return result.returncode, "Database restore failed"
 
                 with sqlite3.connect(temp_db_path) as db:
                     cursor = db.cursor()
@@ -311,9 +313,8 @@ class Command(BaseCommand):
                     row = cursor.fetchone()
 
         if not row:
-            self.stdout.write(self.style.ERROR("Oops! Backup data seems to be out of sync"))
-            exit(1)
-        self.stdout.write(self.style.SUCCESS("All good! Backup data is in sync"))
+            return 1, "Oops! Backup data seems to be out of sync"
+        return 0, "All good! Backup data is in sync"
 
 
 def _db_location_from_alias(alias: str) -> str:
