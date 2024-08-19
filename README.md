@@ -25,9 +25,7 @@ This package installs and integrates [litestream](https://litestream.io), the SQ
     - [litestream snapshots](#litestream-snapshots)
     - [litestream wal](#litestream-wal)
     - [litestream version](#litestream-version)
-- [License](#license)Exists,
-Can be opened by SQLite, and
-Has up-to-date data.
+- [License](#license)
 
 ## Installation
 
