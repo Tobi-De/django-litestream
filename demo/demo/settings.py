@@ -39,7 +39,7 @@ INSTALLED_APPS = [
     "django_litestream",
 ]
 
-LITESTREAM = {"config_file": BASE_DIR / "litestream.yml"}
+LITESTREAM = {"config_file": BASE_DIR / "litestream.yml", "path_prefix": "demo/"}
 
 MIDDLEWARE = [
     "django.middleware.security.SecurityMiddleware",

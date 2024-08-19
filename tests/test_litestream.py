@@ -1,13 +1,14 @@
 from __future__ import annotations
 
+import shutil
+import sqlite3
+import subprocess
+from unittest.mock import patch
+
 import pytest
 from django.test import override_settings
 from yaml import load
 from yaml import Loader
-import shutil
-import subprocess
-from unittest.mock import patch
-import sqlite3
 
 from .conftest import LITESTREAM
 from django_litestream.management.commands.litestream import Command
@@ -166,21 +167,24 @@ def test_verify(tmp_path):
         shutil.copy(sqlite_db, args[0][5])
         return subprocess.CompletedProcess(args, 0)
 
-    with patch('time.sleep', side_effect=lambda _: _), patch('subprocess.run', side_effect=mock_subprocess_run):
+    with patch("time.sleep", side_effect=lambda _: _), patch("subprocess.run", side_effect=mock_subprocess_run):
         exit_code, msg = Command().verify(sqlite_db, config=config_file)
         assert exit_code == 0
+
 
 def test_verify_fails(tmp_path):
     sqlite_db = tmp_path / "db.sqlite3"
     outdated_db = tmp_path / "outdated.sqlite3"
     with sqlite3.connect(outdated_db) as conn:
-        conn.execute("CREATE TABLE IF NOT EXISTS _litestream_verification(id INTEGER PRIMARY KEY, code TEXT, created TEXT) strict;")
+        conn.execute(
+            "CREATE TABLE IF NOT EXISTS _litestream_verification(id INTEGER PRIMARY KEY, code TEXT, created TEXT) strict;"
+        )
         conn.commit()
 
     def mock_subprocess_run(*args, **kwargs):
         shutil.copy(outdated_db, args[0][5])
         return subprocess.CompletedProcess(args, 0)
 
-    with patch('time.sleep', side_effect=lambda _: _), patch('subprocess.run', side_effect=mock_subprocess_run):
+    with patch("time.sleep", side_effect=lambda _: _), patch("subprocess.run", side_effect=mock_subprocess_run):
         exit_code, msg = Command().verify(sqlite_db, config=config_file)
         assert exit_code == 1

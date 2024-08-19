@@ -22,6 +22,7 @@ DJANGO_LITESTREAM_SETTINGS_NAME = "LITESTREAM"
 @dataclass(frozen=True)
 class AppSettings:
     config_file: Path | str = "/etc/litestream.yml"
+    path_prefix: str | None = None
     bin_path: Path | str = "litestream"
     dbs: list[dict[str, str]] = None
     extend_dbs: list[dict[str, str]] = None

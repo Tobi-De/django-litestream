@@ -204,7 +204,7 @@ class Command(BaseCommand):
             subprocess.run([app_settings.bin_path, "version"])
         elif options["subcommand"] == "verify":
             exit_code, msg = self.verify(_db_location_from_alias(options["db_path"]), config=options["config"])
-            style =  self.style.ERROR if exit_code else self.style.SUCCESS
+            style = self.style.ERROR if exit_code else self.style.SUCCESS
             self.stdout.write(style(msg))
             exit(exit_code)
         elif not options["subcommand"]:
@@ -260,6 +260,9 @@ class Command(BaseCommand):
             for db_settings in settings.DATABASES.values():
                 if db_settings["ENGINE"] == "django.db.backends.sqlite3":
                     location = str(db_settings["NAME"])
+                    path = Path(location).name
+                    if app_settings.path_prefix:
+                        path = str(Path(app_settings.path_prefix) / path)
                     dbs.append(
                         {
                             "path": location,
@@ -267,7 +270,7 @@ class Command(BaseCommand):
                                 {
                                     "type": "s3",
                                     "bucket": "$LITESTREAM_REPLICA_BUCKET",
-                                    "path": Path(location).name,
+                                    "path": path,
                                     "access-key-id": "$LITESTREAM_ACCESS_KEY_ID",
                                     "secret-access-key": "$LITESTREAM_SECRET_ACCESS_KEY",
                                 }
@@ -279,9 +282,11 @@ class Command(BaseCommand):
         with open(filepath, "w") as f:
             dump(config, f, sort_keys=False)
 
-    def verify(self, db_path: str | Path, config: str | Path)->tuple[int, str]:
+    def verify(self, db_path: str | Path, config: str | Path) -> tuple[int, str]:
         with Progress(
-            SpinnerColumn(), TextColumn("[progress.description]{task.description}"), transient=True
+            SpinnerColumn(),
+            TextColumn("[progress.description]{task.description}"),
+            transient=True,
         ) as progress:
             progress.add_task("Verifying", total=None)
             data = (secrets.token_hex(), dt.datetime.now())
@@ -291,7 +296,10 @@ class Command(BaseCommand):
                     """
                     CREATE TABLE IF NOT EXISTS _litestream_verification(id INTEGER PRIMARY KEY, code TEXT, created TEXT) strict;"""
                 )
-                cursor.execute("INSERT INTO _litestream_verification (code, created) VALUES (?, ?)", data)
+                cursor.execute(
+                    "INSERT INTO _litestream_verification (code, created) VALUES (?, ?)",
+                    data,
+                )
                 db.commit()
 
             time.sleep(10)
@@ -299,7 +307,15 @@ class Command(BaseCommand):
             with tempfile.TemporaryDirectory() as temp_dir:
                 temp_db_path = Path(temp_dir) / db_path.with_suffix(".restored").name
                 result = subprocess.run(
-                    [app_settings.bin_path, "restore", "-config", config, "-o", temp_db_path, db_path],
+                    [
+                        app_settings.bin_path,
+                        "restore",
+                        "-config",
+                        config,
+                        "-o",
+                        temp_db_path,
+                        db_path,
+                    ],
                     stdout=subprocess.PIPE,
                 )
                 if result.returncode != 0:
@@ -308,7 +324,8 @@ class Command(BaseCommand):
                 with sqlite3.connect(temp_db_path) as db:
                     cursor = db.cursor()
                     cursor.execute(
-                        "SELECT code, created FROM _litestream_verification WHERE code = ? and created = ?", data
+                        "SELECT code, created FROM _litestream_verification WHERE code = ? and created = ?",
+                        data,
                     )
                     row = cursor.fetchone()
 

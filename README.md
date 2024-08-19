@@ -12,20 +12,22 @@ This package installs and integrates [litestream](https://litestream.io), the SQ
 
 ## Table of Contents
 
-- [Installation](#installation)
-- [Usage](#usage)
-  - [Configuration](#configuration)
-  - [Commands](#commands)
-    - [litestream init](#litestream-init)
-    - [litestream databases](#litestream-databases)
-    - [litestream generations](#litestream-generations)
-    - [litestream replicate](#litestream-replicate)
-    - [litestream restore](#litestream-restore)
-    - [litestream verify](#litestream-verify)
-    - [litestream snapshots](#litestream-snapshots)
-    - [litestream wal](#litestream-wal)
-    - [litestream version](#litestream-version)
-- [License](#license)
+- [django-litestream](#django-litestream)
+  - [Table of Contents](#table-of-contents)
+  - [Installation](#installation)
+  - [Usage](#usage)
+    - [Configuration](#configuration)
+    - [Commands](#commands)
+      - [litestream init](#litestream-init)
+      - [litestream databases](#litestream-databases)
+      - [litestream generations](#litestream-generations)
+      - [litestream replicate](#litestream-replicate)
+      - [litestream restore](#litestream-restore)
+      - [litestream verify](#litestream-verify)
+      - [litestream snapshots](#litestream-snapshots)
+      - [litestream wal](#litestream-wal)
+      - [litestream version](#litestream-version)
+  - [License](#license)
 
 ## Installation
 
@@ -51,6 +53,7 @@ These are the available configurations for `django-litestream`:
 # settings.py
 LITESTREAM = {
     "config_file": "/etc/litestream.yml",
+    "path_prefix": None,
     "bin_path": "litestream",
     "dbs": [],
     "extend_dbs": [],
@@ -71,6 +74,8 @@ LITESTREAM = {
     ...
 }
 ```
+
+The **path_prefix** is a string that will be prepended to the path of every database in the `dbs` configuration. This is useful if you are replicating databases from different projects to the same bucket, you could set the `path_prefix` to the project name so that the databases are stored in different folders in the bucket.
 
 The **bin_path** is the path to the Litestream binary. If you want to use a custom installation, specify it here.
 
