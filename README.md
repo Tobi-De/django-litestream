@@ -90,13 +90,10 @@ as its name suggests, it will extend the `dbs` configuration when the final conf
 
 You can run `python manage.py litestream` to see all available commands.
 
-> [!Note]
-> Wherever it says `dj`, assume it is an alias for `python manage.py`.
-
 #### litestream init
 
 ```console
-dj litestream init
+python manage.py litestream init
 ```
 
 This command will write the Litestream configuration to the indicated **config_file** based on your settings. 
@@ -177,7 +174,7 @@ This works exactly like the equivalent [litestream command](https://litestream.i
 Examples:
 
 ```console
-dj litestream databases
+python manage.py litestream databases
 ```
 
 > [!IMPORTANT]
@@ -191,8 +188,8 @@ This works exactly like the equivalent [litestream command](https://litestream.i
 Examples:
 
 ```console
-dj litestream generations default
-dj litestream generations -replica s3 default
+python manage.py litestream generations default
+python manage.py litestream generations -replica s3 default
 ```
 
 #### litestream replicate
@@ -201,8 +198,8 @@ This works exactly like the equivalent [litestream command](https://litestream.i
 Running `litestream replicate db_path replica_url` won't work. You can only run:
 
 ```console
-dj litestream replicate 
-dj litestream replicate -exec "gunicorn myproject.wsgi:application"
+python manage.py litestream replicate 
+python manage.py litestream replicate -exec "gunicorn myproject.wsgi:application"
 ```
 
 This is the command you will run in production using a process manager as its own process. You can run it separately (the first example) or 
@@ -216,8 +213,8 @@ This works exactly like the equivalent [litestream command](https://litestream.i
 Examples:
 
 ```console
-dj litestream restore default
-dj litestream restore -if-replica-exists default
+python manage.py litestream restore default
+python manage.py litestream restore -if-replica-exists default
 ```
 
 #### litestream verify
@@ -235,7 +232,7 @@ If the verification row is not found in the restored database, the command will 
 Examples:
 
 ```console
-dj litestream verify default
+python manage.py litestream verify default
 ```
 
 This check ensures that the restored database file Exists, can be opened by SQLite, and has up-to-date data.
@@ -247,8 +244,8 @@ This works exactly like the equivalent [litestream command](https://litestream.i
 Examples:
 
 ```console
-dj litestream snapshots default
-dj litestream snapshots -replica s3 default
+python manage.py litestream snapshots default
+python manage.py litestream snapshots -replica s3 default
 ```
 
 #### litestream wal
@@ -258,8 +255,8 @@ This works exactly like the equivalent [litestream command](https://litestream.i
 Examples:
 
 ```console
-dj litestream wal default
-dj litestream wal -replica s3 default
+python manage.py litestream wal default
+python manage.py litestream wal -replica s3 default
 ```
 
 #### litestream version
@@ -267,7 +264,7 @@ dj litestream wal -replica s3 default
 Print the version of the Litestream binary.
 
 ```console
-dj litestream version
+python manage.py litestream version
 ```
 
 ## License
