@@ -305,7 +305,7 @@ class Command(BaseCommand):
             time.sleep(10)
 
             with tempfile.TemporaryDirectory() as temp_dir:
-                temp_db_path = Path(temp_dir) / db_path.with_suffix(".restored").name
+                temp_db_path = (Path(temp_dir) / db_path).with_suffix(".restored").name
                 result = subprocess.run(
                     [
                         app_settings.bin_path,
