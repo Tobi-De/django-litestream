@@ -65,7 +65,7 @@ All notable changes to this project will be documented in this file.
 
 - Minimal doc
 
-## [0.0.1] - 2024-08-11
+## [0.1.0] - 2024-08-11
 
 ### 🐛 Bug Fixes
 
