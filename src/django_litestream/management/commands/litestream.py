@@ -12,9 +12,6 @@ from typing import TYPE_CHECKING
 
 from django.conf import settings
 from django.core.management import BaseCommand
-from rich.progress import Progress
-from rich.progress import SpinnerColumn
-from rich.progress import TextColumn
 from yaml import dump
 
 from django_litestream.conf import app_settings
@@ -283,51 +280,46 @@ class Command(BaseCommand):
             dump(config, f, sort_keys=False)
 
     def verify(self, db_path: str | Path, config: str | Path) -> tuple[int, str]:
-        with Progress(
-            SpinnerColumn(),
-            TextColumn("[progress.description]{task.description}"),
-            transient=True,
-        ) as progress:
-            progress.add_task("Verifying", total=None)
-            data = (secrets.token_hex(), dt.datetime.now())
-            with sqlite3.connect(db_path) as db:
+        self.stdout.write("Verifying...")
+        data = (secrets.token_hex(), dt.datetime.now())
+        with sqlite3.connect(db_path) as db:
+            cursor = db.cursor()
+            cursor.execute(
+                """
+                CREATE TABLE IF NOT EXISTS _litestream_verification(id INTEGER PRIMARY KEY, code TEXT, created TEXT) strict;"""
+            )
+            cursor.execute(
+                "INSERT INTO _litestream_verification (code, created) VALUES (?, ?)",
+                data,
+            )
+            db.commit()
+
+        time.sleep(10)
+
+        with tempfile.TemporaryDirectory() as temp_dir:
+            temp_db_path = (Path(temp_dir) / db_path).with_suffix(".restored").name
+            result = subprocess.run(
+                [
+                    app_settings.bin_path,
+                    "restore",
+                    "-config",
+                    config,
+                    "-o",
+                    temp_db_path,
+                    db_path,
+                ],
+                stdout=subprocess.PIPE,
+            )
+            if result.returncode != 0:
+                return result.returncode, "Database restore failed"
+
+            with sqlite3.connect(temp_db_path) as db:
                 cursor = db.cursor()
                 cursor.execute(
-                    """
-                    CREATE TABLE IF NOT EXISTS _litestream_verification(id INTEGER PRIMARY KEY, code TEXT, created TEXT) strict;"""
-                )
-                cursor.execute(
-                    "INSERT INTO _litestream_verification (code, created) VALUES (?, ?)",
+                    "SELECT code, created FROM _litestream_verification WHERE code = ? and created = ?",
                     data,
                 )
-                db.commit()
-
-            time.sleep(10)
-
-            with tempfile.TemporaryDirectory() as temp_dir:
-                temp_db_path = (Path(temp_dir) / db_path).with_suffix(".restored").name
-                result = subprocess.run(
-                    [
-                        app_settings.bin_path,
-                        "restore",
-                        "-config",
-                        config,
-                        "-o",
-                        temp_db_path,
-                        db_path,
-                    ],
-                    stdout=subprocess.PIPE,
-                )
-                if result.returncode != 0:
-                    return result.returncode, "Database restore failed"
-
-                with sqlite3.connect(temp_db_path) as db:
-                    cursor = db.cursor()
-                    cursor.execute(
-                        "SELECT code, created FROM _litestream_verification WHERE code = ? and created = ?",
-                        data,
-                    )
-                    row = cursor.fetchone()
+                row = cursor.fetchone()
 
         if not row:
             return 1, "Oops! Backup data seems to be out of sync"
