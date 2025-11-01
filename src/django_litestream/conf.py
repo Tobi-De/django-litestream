@@ -21,10 +21,12 @@ class AppSettings:
         return self.user_settings.get("path_prefix", "")
 
     @property
-    def bin_path(self) -> Path | str:
-        return self.user_settings.get(
-            "bin_path",
-            Path(sys.executable).parent / "litestream",
+    def bin_path(self) -> Path:
+        return Path(
+            self.user_settings.get(
+                "bin_path",
+                Path(sys.executable).parent / "litestream",
+            )
         )
 
     def litestream_settings(self) -> dict[str, object]:

@@ -151,6 +151,15 @@ class Command(BaseCommand):
         )
 
     def handle(self, *_, **options) -> None:
+        # Check if litestream binary exists, download if not
+        if not app_settings.bin_path.exists():
+            self.stdout.write(
+                self.style.WARNING(
+                    f"Litestream binary not found at {app_settings.bin_path}. Downloading..."
+                )
+            )
+            download_binary()
+
         if options["subcommand"] == "config":
             with generate_temp_config() as config:
                 self.stdout.write(Path(config).read_text())
@@ -313,3 +322,92 @@ def generate_temp_config():
         yield config_path
     finally:
         Path(config_path).unlink(missing_ok=True)
+
+
+def download_binary():
+    """Download the litestream binary for the current platform."""
+    import platform
+    import urllib.request
+    import tarfile
+    import zipfile
+    import io
+
+    VERSION = "0.5.2"
+    UPSTREAM_REPO = "https://github.com/benbjohnson/litestream"
+
+    # Detect platform
+    system = platform.system().lower()  # 'linux', 'darwin', 'windows'
+    machine = platform.machine().lower()  # 'x86_64', 'arm64', 'aarch64', etc.
+
+    # Normalize machine architecture
+    if machine in ("aarch64", "arm64"):
+        arch = "arm64"
+    elif machine in ("x86_64", "amd64"):
+        arch = "x86_64"
+    elif machine in ("armv7l", "armv7"):
+        arch = "armv7"
+    elif machine in ("armv6l", "armv6"):
+        arch = "armv6"
+    else:
+        raise ValueError(f"Unsupported architecture: {machine}")
+
+    # Determine download URL and file format
+    if system == "linux":
+        platform_tag = f"linux-{arch}"
+        download_url = f"{UPSTREAM_REPO}/releases/download/v{VERSION}/litestream-{VERSION}-{platform_tag}.tar.gz"
+        is_zip = False
+    elif system == "darwin":
+        # macOS only has arm64 and x86_64
+        if arch not in ("arm64", "x86_64"):
+            raise ValueError(f"Unsupported macOS architecture: {arch}")
+        platform_tag = f"darwin-{arch}"
+        download_url = f"{UPSTREAM_REPO}/releases/download/v{VERSION}/litestream-{VERSION}-{platform_tag}.tar.gz"
+        is_zip = False
+    elif system == "windows":
+        # Windows only has arm64 and x86_64
+        if arch not in ("arm64", "x86_64"):
+            raise ValueError(f"Unsupported Windows architecture: {arch}")
+        platform_tag = f"windows-{arch}"
+        download_url = f"{UPSTREAM_REPO}/releases/download/v{VERSION}/litestream-{VERSION}-{platform_tag}.zip"
+        is_zip = True
+    else:
+        raise ValueError(f"Unsupported operating system: {system}")
+
+    print(f"Downloading litestream {VERSION} for {platform_tag}...")
+    print(f"URL: {download_url}")
+
+    # Download the binary
+    with urllib.request.urlopen(download_url) as response:
+        data = response.read()
+
+    install_path = app_settings.bin_path
+    install_path.parent.mkdir(parents=True, exist_ok=True)
+
+    # Extract the binary
+    if is_zip:
+        # Windows zip file
+        with zipfile.ZipFile(io.BytesIO(data)) as zf:
+            # Find the litestream executable in the zip
+            for member in zf.namelist():
+                if member.endswith("litestream.exe") or member.endswith("litestream"):
+                    with zf.open(member) as source:
+                        with open(install_path, "wb") as target:
+                            target.write(source.read())
+                    break
+    else:
+        # Linux/macOS tar.gz file
+        with tarfile.open(fileobj=io.BytesIO(data), mode="r:gz") as tf:
+            # Find the litestream executable in the tarball
+            for member in tf.getmembers():
+                if member.name.endswith("litestream") and member.isfile():
+                    with tf.extractfile(member) as source:
+                        with open(install_path, "wb") as target:
+                            target.write(source.read())
+                    break
+
+    # Make executable on Unix systems
+    if system != "windows":
+        install_path.chmod(0o755)
+
+    print(f"Litestream binary installed to: {install_path}")
+    return install_path

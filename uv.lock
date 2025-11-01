@@ -40,7 +40,6 @@ version = "0.3.2"
 source = { editable = "." }
 dependencies = [
     { name = "django" },
-    { name = "litestream-bin" },
     { name = "pyyaml" },
 ]
 
@@ -52,7 +51,6 @@ dev = [
 [package.metadata]
 requires-dist = [
     { name = "django", specifier = ">=4.2" },
-    { name = "litestream-bin" },
     { name = "pyyaml" },
 ]
 
@@ -66,17 +64,6 @@ source = { registry = "https://pypi.org/simple" }
 sdist = { url = "https://files.pythonhosted.org/packages/72/34/14ca021ce8e5dfedc35312d08ba8bf51fdd999c576889fc2c24cb97f4f10/iniconfig-2.3.0.tar.gz", hash = "sha256:c76315c77db068650d49c5b56314774a7804df16fee4402c1f19d6d15d8c4730", size = 20503, upload-time = "2025-10-18T21:55:43.219Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/cb/b1/3846dd7f199d53cb17f49cba7e651e9ce294d8497c8c150530ed11865bb8/iniconfig-2.3.0-py3-none-any.whl", hash = "sha256:f631c04d2c48c52b84d0d0549c99ff3859c98df65b3101406327ecc7d53fbf12", size = 7484, upload-time = "2025-10-18T21:55:41.639Z" },
-]
-
-[[package]]
-name = "litestream-bin"
-version = "0.3.13"
-source = { registry = "https://pypi.org/simple" }
-wheels = [
-    { url = "https://files.pythonhosted.org/packages/dd/61/bdc89f481066333db44ddaeea2d5216ce5b00c6ba4ee5a1c7d0d321cd141/litestream_bin-0.3.13-py3-none-macosx_10_9_x86_64.whl", hash = "sha256:cc8db199f3da14eb39cc5ab9e7f11bbcf2b5894cbe5383a065110e6aa9a89769", size = 10058973, upload-time = "2024-11-11T04:34:26.684Z" },
-    { url = "https://files.pythonhosted.org/packages/09/e8/df7c072dd16f3de6236f0363bdd373f6ef59c3600c80fa20d64620e397eb/litestream_bin-0.3.13-py3-none-macosx_11_0_arm64.whl", hash = "sha256:1e1f36b4e8ee53ae73c0f59581d097a568b9a3fa9f9d6874a9000769454904c4", size = 9285299, upload-time = "2024-11-11T04:34:29.657Z" },
-    { url = "https://files.pythonhosted.org/packages/63/5f/6c4b78c066151c4c44ddac5afbd103a9b96a4920a3c62dfc97bf7250c9bf/litestream_bin-0.3.13-py3-none-manylinux_2_12_x86_64.manylinux2010_x86_64.musllinux_1_1_x86_64.whl", hash = "sha256:9ed599bf5f54512d0d287b8fff7cd786b84b0582b2c02fad542cec2efe00fbc8", size = 9634868, upload-time = "2024-11-11T04:34:31.954Z" },
-    { url = "https://files.pythonhosted.org/packages/8a/84/46420b949111bb2e8b7cb6401667e9e81fa2519319ceec8df20e13713041/litestream_bin-0.3.13-py3-none-manylinux_2_17_aarch64.manylinux2014_aarch64.musllinux_1_1_aarch64.whl", hash = "sha256:a2af3f54df0588c4513f5d2f1ddc54ca6419da5244c28c1dae47a5423f257269", size = 8821328, upload-time = "2024-11-11T04:34:35.097Z" },
 ]
 
 [[package]]
