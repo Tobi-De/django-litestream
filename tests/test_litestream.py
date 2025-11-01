@@ -167,7 +167,10 @@ def test_verify(tmp_path):
         shutil.copy(sqlite_db, args[0][5])
         return subprocess.CompletedProcess(args, 0)
 
-    with patch("time.sleep", side_effect=lambda _: _), patch("subprocess.run", side_effect=mock_subprocess_run):
+    with (
+        patch("time.sleep", side_effect=lambda _: _),
+        patch("subprocess.run", side_effect=mock_subprocess_run),
+    ):
         exit_code, msg = Command().verify(sqlite_db, config=config_file)
         assert exit_code == 0
 
@@ -185,6 +188,9 @@ def test_verify_fails(tmp_path):
         shutil.copy(outdated_db, args[0][5])
         return subprocess.CompletedProcess(args, 0)
 
-    with patch("time.sleep", side_effect=lambda _: _), patch("subprocess.run", side_effect=mock_subprocess_run):
+    with (
+        patch("time.sleep", side_effect=lambda _: _),
+        patch("subprocess.run", side_effect=mock_subprocess_run),
+    ):
         exit_code, msg = Command().verify(sqlite_db, config=config_file)
         assert exit_code == 1

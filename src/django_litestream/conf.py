@@ -1,19 +1,10 @@
 from __future__ import annotations
 
-import sys
 from dataclasses import dataclass
 from pathlib import Path
+from typing import override
 
 from django.conf import settings
-
-if sys.version_info >= (3, 12):
-    from typing import override as typing_override
-else:  # pragma: no cover
-    from typing_extensions import (
-        override as typing_override,  # pyright: ignore[reportUnreachable]
-    )
-
-override = typing_override
 
 
 DJANGO_LITESTREAM_SETTINGS_NAME = "LITESTREAM"

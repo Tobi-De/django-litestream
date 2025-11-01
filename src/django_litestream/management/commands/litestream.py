@@ -196,11 +196,15 @@ class Command(BaseCommand):
     def handle(self, *_, **options) -> None:
         if options["subcommand"] == "init":
             self.init(filepath=options["config"])
-            self.stdout.write(self.style.SUCCESS("Litestream configuration file created"))
+            self.stdout.write(
+                self.style.SUCCESS("Litestream configuration file created")
+            )
         elif options["subcommand"] == "version":
             subprocess.run([app_settings.bin_path, "version"])
         elif options["subcommand"] == "verify":
-            exit_code, msg = self.verify(_db_location_from_alias(options["db_path"]), config=options["config"])
+            exit_code, msg = self.verify(
+                _db_location_from_alias(options["db_path"]), config=options["config"]
+            )
             style = self.style.ERROR if exit_code else self.style.SUCCESS
             self.stdout.write(style(msg))
             exit(exit_code)

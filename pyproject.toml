@@ -1,18 +1,23 @@
 [build-system]
-build-backend = "hatchling.build"
-
-requires = [ "hatchling" ]
+build-backend = "uv_build"
+requires = [ "uv-build>=0.9.7,<0.10" ]
 
 [project]
 name = "django-litestream"
+version = "0.3.2"
 description = "Django integration with litestream, a a standalone streaming replication tool for SQLite."
 readme = "README.md"
-keywords = [ "backup", "django", "litestream", "replication", "sqlite", "sqlite3" ]
-license = { file = "LICENSE.txt" }
-authors = [
-  { name = "Tobi DEGNON", email = "tobidegnon@proton.me" },
+keywords = [
+  "backup",
+  "django",
+  "litestream",
+  "replication",
+  "sqlite",
+  "sqlite3",
 ]
-requires-python = ">=3.8"
+license = { file = "LICENSE.txt" }
+authors = [ { name = "Tobi-De", email = "tobidegnon@proton.me" } ]
+requires-python = ">=3.12"
 classifiers = [
   "Development Status :: 4 - Beta",
   "Framework :: Django :: 4.2",
@@ -24,65 +29,76 @@ classifiers = [
 
   "Programming Language :: Python",
   "Programming Language :: Python :: 3 :: Only",
-  "Programming Language :: Python :: 3.8",
-  "Programming Language :: Python :: 3.9",
-  "Programming Language :: Python :: 3.10",
-  "Programming Language :: Python :: 3.11",
   "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
   "Programming Language :: Python :: Implementation :: CPython",
   "Programming Language :: Python :: Implementation :: PyPy",
 ]
-dynamic = [ "version" ]
-dependencies = ["django>=4.2", "litestream-bin", "pyyaml"]
+dependencies = [ "django>=4.2", "pyyaml" ]
 
 urls.Documentation = "https://github.com/Tobi-De/django-litestream#readme"
 urls.Issues = "https://github.com/Tobi-De/django-litestream/issues"
 urls.Source = "https://github.com/Tobi-De/django-litestream"
 
-[tool.hatch.version]
-path = "src/django_litestream/__about__.py"
+[dependency-groups]
+dev = [ "pytest" ]
 
-[tool.hatch.envs.default]
-dependencies = [
-  "pre-commit",
-  "reorder-python-imports",
-  "bump-my-version",
-  "git-cliff",
-  "pytest",
+[tool.uv]
+default-groups = [ "dev" ]
+
+[tool.ruff]
+target-version = "py312"
+
+# Same as Black.
+line-length = 88
+indent-width = 4
+extend-include = [ "*.pyi?" ]
+# Exclude a variety of commonly ignored directories.
+exclude = [
+  ".bzr",
+  ".direnv",
+  ".eggs",
+  ".git",
+  ".github",
+  ".hg",
+  ".mypy_cache",
+  ".ruff_cache",
+  ".svn",
+  ".tox",
+  ".venv",
+  "__pycache__",
+  "__pypackages__",
+  "_build",
+  "build",
+  "dist",
+  "migrations",
+  "node_modules",
+  "venv",
 ]
-
-[tool.hatch.envs.types]
-extra-dependencies = [
-  "mypy>=1.0.0",
+# Like Black, indent with spaces, rather than tabs.
+format.indent-style = "space"
+# Like Black, use double quotes for strings.
+format.quote-style = "double"
+# Like Black, automatically detect the appropriate line ending.
+format.line-ending = "auto"
+lint.select = [
+  "B",  # flake8-bugbear
+  "E",  # Pycodestyle
+  "F",  # Pyflakes
+  "UP", # pyupgrade
 ]
-[tool.hatch.envs.types.scripts]
-check = "mypy --install-types --non-interactive {args:src/django_litestream tests}"
-
-[tool.coverage.run]
-source_pkgs = [ "django_litestream", "tests" ]
-branch = true
-parallel = true
-omit = [
-  "src/django_litestream/__about__.py",
-]
-
-[tool.coverage.paths]
-django_litestream = [ "src/django_litestream", "*/django-litestream/src/django_litestream" ]
-tests = [ "tests", "*/django-litestream/tests" ]
-
-[tool.coverage.report]
-exclude_lines = [
-  "no cov",
-  "if __name__ == .__main__.:",
-  "if TYPE_CHECKING:",
-]
+lint.ignore = [ "E501", "E741", "I001", "I002" ] # temporary
+# Allow autofix for all enabled rules (when `--fix`) is provided.
+lint.fixable = [ "A", "B", "C", "D", "E", "F", "I" ]
+lint.unfixable = [  ]
+# Allow unused variables when underscore-prefixed.
+lint.dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
 
 [tool.bumpversion]
 current_version = "0.3.2"
 parse = "(?P<major>\\d+)\\.(?P<minor>\\d+)\\.(?P<patch>\\d+)"
-serialize = [
-  "{major}.{minor}.{patch}",
-]
+serialize = [ "{major}.{minor}.{patch}" ]
 search = "{current_version}"
 replace = "{new_version}"
 regex = false
@@ -98,14 +114,15 @@ message = "Bump version: {current_version} → {new_version}"
 commit_args = "--no-verify"
 
 [[tool.bumpversion.files]]
-filename = "src/django_litestream/__about__.py"
-search = '__version__ = "{current_version}"'
-replace = '__version__ = "{new_version}"'
+filename = "pyproject.toml"
+search = 'version = "{current_version}"'
+replace = 'version = "{new_version}"'
 
 [tool.git-cliff.changelog]
 header = """
 # Changelog\n
 All notable changes to this project will be documented in this file.\n
+This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).\n
 """
 body = """
 {% if version %}\
