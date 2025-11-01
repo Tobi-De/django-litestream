@@ -6,73 +6,43 @@ import sqlite3
 import subprocess
 import tempfile
 import time
+from contextlib import contextmanager
 from itertools import chain
 from pathlib import Path
 from typing import TYPE_CHECKING
 
 from django.conf import settings
 from django.core.management import BaseCommand
-from yaml import dump
+import yaml
+import sys
 
 from django_litestream.conf import app_settings
 
 if TYPE_CHECKING:
     from argparse import ArgumentParser
 
-CONFIG_ARG = {
-    "name": "-config",
-    "type": Path,
-    "help": f"Path to the litestream configuration file, default: {app_settings.config_file}",
-    "default": app_settings.config_file,
-    "required": False,
-}
-
-DB_PATH_ARG = {
-    "name": "db_path",
-    "type": str,
-    "help": "Path to the SQLite database file or django database alias",
-}
-
-DB_PATH_OR_REPLICA_URL_ARG = {
-    "name": "db_path",
-    "help": "Path to the SQLite database file or replica URL",
-}
-
-NO_EXPAND_ENV_ARG = {
-    "name": "-no-expand-env",
-    "action": "store_true",
-    "help": "Disables environment variable expansion in configuration file.",
-    "required": False,
-}
-
-
-def _get_replica_arg(subcommand: str) -> dict:
-    return {
-        "name": "-replica",
-        "help": f"Optional, filters by replica. Only applies when listing database {subcommand}.",
-        "required": False,
-    }
-
-
 LITESTREAM_COMMANDS = {
     "databases": {
         "description": "List databases specified in config file",
-        "arguments": [CONFIG_ARG, NO_EXPAND_ENV_ARG],
+        "arguments": [],
     },
     "ltx": {
         "description": "List available LTX files for a database",
         "arguments": [
-            DB_PATH_OR_REPLICA_URL_ARG,
-            CONFIG_ARG,
-            NO_EXPAND_ENV_ARG,
-            _get_replica_arg("LTX files"),
+            {
+                "name": "db_path",
+                "help": "Path to the SQLite database file or replica URL",
+            },
+            {
+                "name": "-replica",
+                "help": "Optional, filters by replica. Only applies when listing database LTX files.",
+                "required": False,
+            },
         ],
     },
     "replicate": {
         "description": "Runs a server to replicate databases",
         "arguments": [
-            CONFIG_ARG,
-            NO_EXPAND_ENV_ARG,
             {
                 "name": "-exec",
                 "nargs": "+",
@@ -85,9 +55,10 @@ LITESTREAM_COMMANDS = {
     "restore": {
         "description": "Recovers database backup from a replica",
         "arguments": [
-            DB_PATH_OR_REPLICA_URL_ARG,
-            CONFIG_ARG,
-            NO_EXPAND_ENV_ARG,
+            {
+                "name": "db_path",
+                "help": "Path to the SQLite database file or replica URL",
+            },
             {
                 "name": "-replica",
                 "help": "Restore from a specific replica.Defaults to replica with latest data.",
@@ -145,13 +116,12 @@ class Command(BaseCommand):
 
     def add_arguments(self, parser: ArgumentParser) -> None:
         subcommands = parser.add_subparsers(help="subcommands", dest="subcommand")
-        init_cmd = subcommands.add_parser(
-            "init",
-            help="Initialize a new Litestream configuration",
-            description="Initialize a new Litestream configuration",
-        )
 
-        _add_argument(init_cmd, CONFIG_ARG)
+        subcommands.add_parser(
+            "config",
+            help="Show the current Litestream configuration",
+            description="Show the current Litestream configuration generated from Django settings",
+        )
 
         for ls_cmd, details in LITESTREAM_COMMANDS.items():
             parser = subcommands.add_parser(
@@ -160,48 +130,61 @@ class Command(BaseCommand):
                 description=details["description"],
             )
             for args in details["arguments"]:
-                _add_argument(parser, args)
+                copied_args = args.copy()
+                name = copied_args.pop("name")
+                parser.add_argument(name, **copied_args)
+            parser.add_argument(
+                "-no-expand-env",
+                action="store_true",
+                help="Disables environment variable expansion in configuration file.",
+                required=False,
+            )
 
         verify_cmd = subcommands.add_parser(
             name="verify",
             help="Verify the integrity of backed-up databases",
             description="Verify the integrity of backed-up databases",
         )
-        _add_argument(verify_cmd, DB_PATH_ARG)
-        _add_argument(verify_cmd, CONFIG_ARG)
+        verify_cmd.add_argument(
+            "db_path",
+            help="Path to the SQLite database file or django database alias",
+        )
 
     def handle(self, *_, **options) -> None:
-        if options["subcommand"] == "init":
-            self.init(filepath=options["config"])
-            self.stdout.write(
-                self.style.SUCCESS("Litestream configuration file created")
-            )
+        if options["subcommand"] == "config":
+            with generate_temp_config() as config:
+                self.stdout.write(Path(config).read_text())
         elif options["subcommand"] == "version":
             subprocess.run([app_settings.bin_path, "version"])
         elif options["subcommand"] == "verify":
-            exit_code, msg = self.verify(
-                _db_location_from_alias(options["db_path"]), config=options["config"]
-            )
+            with generate_temp_config() as config:
+                exit_code, msg = self.verify(
+                    _db_location_from_alias(options["db_path"]), config=config
+                )
             style = self.style.ERROR if exit_code else self.style.SUCCESS
             self.stdout.write(style(msg))
             exit(exit_code)
         elif not options["subcommand"]:
             self.print_help("manage", "litestream")
         else:
-            ls_args = self.parse_args(options["subcommand"], options)
-            if options["verbosity"] > 2:
-                self.stdout.write(f"Options: {options}")
-            if options["verbosity"] > 1:
-                self.stdout.write(f"Litestream bin: {app_settings.bin_path}")
-                self.stdout.write(f"Litestream args: {ls_args}")
-            try:
-                subprocess.run([app_settings.bin_path, *ls_args], check=False)
-            except KeyboardInterrupt:
-                self.stdout.write("Litestream command interrupted")
+            with generate_temp_config() as config:
+                options["config"] = Path(config)
+                ls_args = self.parse_args(options["subcommand"], options)
+                if options["verbosity"] > 2:
+                    self.stdout.write(f"Options: {options}")
+                if options["verbosity"] > 1:
+                    self.stdout.write(f"Litestream bin: {app_settings.bin_path}")
+                    self.stdout.write(f"Litestream args: {ls_args}")
+                try:
+                    subprocess.run([app_settings.bin_path, *ls_args], check=False)
+                except KeyboardInterrupt:
+                    self.stdout.write("Litestream command interrupted")
 
     def parse_args(self, subcommand: str, options: dict) -> list[str]:
+        """This method formats the command line arguments for litestream binary."""
         positionals = []
-        optionals = []
+        optionals = ["-config", str(options["config"])]
+
         for argument in LITESTREAM_COMMANDS[subcommand]["arguments"]:
             arg_name = argument["name"]
             dest = arg_name.strip("-").replace("-", "_")
@@ -227,42 +210,9 @@ class Command(BaseCommand):
                 positionals.append(str(value))
         return [subcommand, *list(chain(optionals)), *positionals]
 
-    def init(self, filepath: Path):
-        dbs = app_settings.dbs if app_settings.dbs else []
-        config = {"dbs": dbs}
-        if app_settings.logging:
-            config["logging"] = app_settings.logging
-        if app_settings.addr:
-            config["addr"] = app_settings.addr
-        if app_settings.mcp_addr:
-            config["mcp-addr"] = app_settings.mcp_addr
-        if not dbs:
-            for db_settings in settings.DATABASES.values():
-                if db_settings["ENGINE"] == "django.db.backends.sqlite3":
-                    location = str(db_settings["NAME"])
-                    path = Path(location).name
-                    if app_settings.path_prefix:
-                        path = str(Path(app_settings.path_prefix) / path)
-                    dbs.append(
-                        {
-                            "path": location,
-                            "replica": {
-                                "type": "s3",
-                                "bucket": "$LITESTREAM_REPLICA_BUCKET",
-                                "path": path,
-                                "access-key-id": "$LITESTREAM_ACCESS_KEY_ID",
-                                "secret-access-key": "$LITESTREAM_SECRET_ACCESS_KEY",
-                            },
-                        }
-                    )
-        if app_settings.extend_dbs:
-            dbs.extend(app_settings.extend_dbs)
-        with open(filepath, "w") as f:
-            dump(config, f, sort_keys=False)
-
     def verify(self, db_path: str | Path, config: str | Path) -> tuple[int, str]:
         self.stdout.write("Verifying...")
-        data = (secrets.token_hex(), dt.datetime.now())
+        data = secrets.token_hex(), dt.datetime.now()
         with sqlite3.connect(db_path) as db:
             cursor = db.cursor()
             cursor.execute(
@@ -314,6 +264,52 @@ def _db_location_from_alias(alias: str) -> str:
     return alias
 
 
-def _add_argument(parser: ArgumentParser, args: dict) -> None:
-    copied_args = args.copy()
-    parser.add_argument(copied_args.pop("name"), **copied_args)
+@contextmanager
+def generate_temp_config():
+    """Generate a temporary litestream config file from Django settings."""
+    config = app_settings.litestream_settings()
+    dbs = config.get("dbs", [])
+    processed_dbs = []
+    for user_db in dbs:
+        path = _db_location_from_alias(user_db["path"])
+        db_settings = next(
+            (s for s in settings.DATABASES.values() if s["NAME"] == path), None
+        )
+        if not db_settings:
+            continue
+        if db_settings["ENGINE"] != "django.db.backends.sqlite3":
+            continue
+        db_conf = {"path": str(path)}
+        if "replica" not in user_db:
+            # since we are adding replica config, add global credentials too if missing
+            if "access-key-id" not in config:
+                config["access-key-id"] = "$LITESTREAM_ACCESS_KEY_ID"
+            if "secret-access-key" not in config:
+                config["secret-access-key"] = "$LITESTREAM_SECRET_ACCESS_KEY"
+            backup_path = Path(path).name
+            path_prefix = app_settings.path_prefix.rstrip("/")
+            backup_path = f"{path_prefix}/{backup_path}" if path_prefix else backup_path
+            db_conf["replica"] = {
+                "type": "s3",
+                "bucket": "$LITESTREAM_REPLICA_BUCKET",
+                "path": backup_path,
+            }
+        else:
+            db_conf["replica"] = user_db["replica"]
+        # validate the config here before adding
+        processed_dbs.append(db_conf)
+
+    config["dbs"] = processed_dbs
+
+    if not processed_dbs:
+        print("No valid SQLite databases found for Litestream configuration")
+        raise sys.exit(1)
+
+    with tempfile.NamedTemporaryFile(mode="w", suffix=".yml", delete=False) as f:
+        yaml.dump(config, f, sort_keys=False)
+        config_path = f.name
+
+    try:
+        yield config_path
+    finally:
+        Path(config_path).unlink(missing_ok=True)

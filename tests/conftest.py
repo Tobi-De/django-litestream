@@ -7,11 +7,6 @@ from django.conf import settings
 pytest_plugins = []  # type: ignore
 
 
-LITESTREAM = {
-    "config_file": "litestream.yml",
-}
-
-
 def pytest_configure(config):
     logging.disable(logging.CRITICAL)
 
@@ -35,5 +30,5 @@ def pytest_configure(config):
             "django.contrib.auth.hashers.MD5PasswordHasher",
         ],
         SECRET_KEY="not-a-secret",
-        LITESTREAM=LITESTREAM,
+        LITESTREAM={},
     )

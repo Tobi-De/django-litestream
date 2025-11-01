@@ -5,147 +5,137 @@ import sqlite3
 import subprocess
 from unittest.mock import patch
 
-import pytest
 from django.test import override_settings
 from yaml import load
 from yaml import Loader
 
-from .conftest import LITESTREAM
-from django_litestream.management.commands.litestream import Command
-
-
-@pytest.fixture
-def parser():
-    return Command().create_parser("manage", "litestream")
-
-
-@pytest.fixture
-def temp_config_file(tmp_path):
-    return tmp_path / "litestream.yml"
-
-
-config_file = LITESTREAM["config_file"]
-
-
-@pytest.mark.parametrize(
-    "input_args,parsed_args",
-    [
-        ("databases", f"databases -config {config_file}"),
-        ("ltx default", f"ltx -config {config_file} db.sqlite3"),
-        (
-            "ltx -replica s3 default",
-            f"ltx -config {config_file} -replica s3 db.sqlite3",
-        ),
-        ("replicate", f"replicate -config {config_file}"),
-        # (
-        #     "replicate -exec 'python manage.py runserver'",
-        #     f"replicate -config {config_file} -exec 'python manage.py runserver'",
-        # ),
-        ("restore default", f"restore -config {config_file} db.sqlite3"),
-        (
-            "restore -replica s3 -if-db-not-exists default -if-replica-exists",
-            f"restore -config {config_file} -replica s3 -if-replica-exists -if-db-not-exists db.sqlite3",
-        ),
-        (
-            "restore -replica s3 -if-db-not-exists default -if-replica-exist -o db2.sqlite2",
-            f"restore -config {config_file} -replica s3 -o db2.sqlite2 -if-replica-exists -if-db-not-exists db.sqlite3",
-        ),
-    ],
+from django_litestream.management.commands.litestream import (
+    Command,
+    generate_temp_config,
 )
-def test_parse_args(parser, input_args, parsed_args):
-    input_list = input_args.split(" ")
-    parsed_args_list = parsed_args.split(" ")
-
-    namespace = parser.parse_args(input_list)
-    ls_args = Command().parse_args(subcommand=input_list[0], options=vars(namespace))
-    assert ls_args == parsed_args_list
 
 
-def test_init(temp_config_file):
-    Command().init(temp_config_file)
-    with open(temp_config_file) as f:
-        config = load(f, Loader=Loader)
+# def test_empty_dbs_not_allowed():
+#     with override_settings(LITESTREAM={}):
+#         with pytest.raises(ValueError):
+#             generate_temp_config()
 
-    assert config == {
+
+def test_generate_temp_config_user_defined_with_replica():
+    """Test that user-defined db with replica is used as-is."""
+    litestream_config = {
         "dbs": [
             {
                 "path": "db.sqlite3",
                 "replica": {
                     "type": "s3",
-                    "bucket": "$LITESTREAM_REPLICA_BUCKET",
-                    "path": "db.sqlite3",
-                    "access-key-id": "$LITESTREAM_ACCESS_KEY_ID",
-                    "secret-access-key": "$LITESTREAM_SECRET_ACCESS_KEY",
-                },
-            }
-        ]
-    }
-
-
-def test_init_override_db(temp_config_file):
-    litestream_config = {
-        "config_file": temp_config_file,
-        "dbs": [
-            {
-                "path": "db2.sqlite3",
-                "replica": {
-                    "type": "s3",
-                    "bucket": "bucket",
-                    "path": "db2.sqlite3",
-                    "access-key-id": "access-key",
-                    "secret-access": "secret",
+                    "bucket": "my-bucket",
+                    "path": "custom.sqlite3",
                 },
             }
         ],
     }
     with override_settings(LITESTREAM=litestream_config):
-        Command().init(temp_config_file)
-        with open(temp_config_file) as f:
-            config = load(f, Loader=Loader)
+        with generate_temp_config() as config_path:
+            with open(config_path) as f:
+                config = load(f, Loader=Loader)
 
-    assert config == {"dbs": litestream_config["dbs"]}
+            assert len(config["dbs"]) == 1
+            assert config["dbs"][0]["path"] == "db.sqlite3"
+            assert config["dbs"][0]["replica"]["bucket"] == "my-bucket"
+            assert config["dbs"][0]["replica"]["path"] == "custom.sqlite3"
 
 
-def test_init_extend_dbs(temp_config_file):
+def test_generate_temp_config_user_defined_auto_replica():
+    """Test that replica is auto-generated when not specified by user."""
     litestream_config = {
-        "config_file": temp_config_file,
-        "extend_dbs": [
-            {
-                "path": "db2.sqlite3",
-                "replica": {
-                    "type": "s3",
-                    "bucket": "bucket",
-                    "path": "db2.sqlite3",
-                    "access-key-id": "access-key",
-                    "secret-access": "secret",
-                },
-            }
-        ],
-    }
-    with override_settings(LITESTREAM=litestream_config):
-        Command().init(temp_config_file)
-        with open(temp_config_file) as f:
-            config = load(f, Loader=Loader)
-
-    assert config == {
         "dbs": [
             {
                 "path": "db.sqlite3",
+            }
+        ],
+    }
+    with override_settings(LITESTREAM=litestream_config):
+        with generate_temp_config() as config_path:
+            with open(config_path) as f:
+                config = load(f, Loader=Loader)
+
+            assert len(config["dbs"]) == 1
+            assert config["dbs"][0]["path"] == "db.sqlite3"
+            # Replica should be auto-generated
+            assert "replica" in config["dbs"][0]
+            assert config["dbs"][0]["replica"]["type"] == "s3"
+            assert config["dbs"][0]["replica"]["bucket"] == "$LITESTREAM_REPLICA_BUCKET"
+            assert config["dbs"][0]["replica"]["path"] == "db.sqlite3"
+            # Global credentials should be added
+            assert config["access-key-id"] == "$LITESTREAM_ACCESS_KEY_ID"
+            assert config["secret-access-key"] == "$LITESTREAM_SECRET_ACCESS_KEY"
+
+
+def test_generate_temp_config_with_path_prefix():
+    """Test that path_prefix is applied to auto-generated replica paths."""
+    litestream_config = {
+        "path_prefix": "myproject",
+        "dbs": [
+            {
+                "path": "db.sqlite3",
+            }
+        ],
+    }
+    with override_settings(LITESTREAM=litestream_config):
+        with generate_temp_config() as config_path:
+            with open(config_path) as f:
+                config = load(f, Loader=Loader)
+
+            assert config["dbs"][0]["replica"]["path"] == "myproject/db.sqlite3"
+
+
+def test_generate_temp_config_multiple_dbs():
+    """Test multiple databases can be configured."""
+    litestream_config = {
+        "dbs": [
+            {"path": "db.sqlite3"},
+            {
+                "path": "other.sqlite3",
                 "replica": {
                     "type": "s3",
-                    "bucket": "$LITESTREAM_REPLICA_BUCKET",
-                    "path": "db.sqlite3",
-                    "access-key-id": "$LITESTREAM_ACCESS_KEY_ID",
-                    "secret-access-key": "$LITESTREAM_SECRET_ACCESS_KEY",
+                    "bucket": "other-bucket",
+                    "path": "other.sqlite3",
                 },
             },
-            litestream_config["extend_dbs"][0],
-        ]
+        ],
     }
+
+    # Add second database to Django DATABASES
+    with override_settings(
+        LITESTREAM=litestream_config,
+        DATABASES={
+            "default": {
+                "ENGINE": "django.db.backends.sqlite3",
+                "NAME": "db.sqlite3",
+            },
+            "other": {
+                "ENGINE": "django.db.backends.sqlite3",
+                "NAME": "other.sqlite3",
+            },
+        },
+    ):
+        with generate_temp_config() as config_path:
+            with open(config_path) as f:
+                config = load(f, Loader=Loader)
+
+            assert len(config["dbs"]) == 2
+            # First db should have auto-generated replica
+            assert config["dbs"][0]["path"] == "db.sqlite3"
+            assert config["dbs"][0]["replica"]["bucket"] == "$LITESTREAM_REPLICA_BUCKET"
+            # Second db should use user-defined replica
+            assert config["dbs"][1]["path"] == "other.sqlite3"
+            assert config["dbs"][1]["replica"]["bucket"] == "other-bucket"
 
 
 def test_verify(tmp_path):
     sqlite_db = tmp_path / "db.sqlite3"
+    temp_config = tmp_path / "litestream.yml"
 
     def mock_subprocess_run(*args, **kwargs):
         shutil.copy(sqlite_db, args[0][5])
@@ -155,13 +145,14 @@ def test_verify(tmp_path):
         patch("time.sleep", side_effect=lambda _: _),
         patch("subprocess.run", side_effect=mock_subprocess_run),
     ):
-        exit_code, msg = Command().verify(sqlite_db, config=config_file)
+        exit_code, msg = Command().verify(sqlite_db, config=temp_config)
         assert exit_code == 0
 
 
 def test_verify_fails(tmp_path):
     sqlite_db = tmp_path / "db.sqlite3"
     outdated_db = tmp_path / "outdated.sqlite3"
+    temp_config = tmp_path / "litestream.yml"
     with sqlite3.connect(outdated_db) as conn:
         conn.execute(
             "CREATE TABLE IF NOT EXISTS _litestream_verification(id INTEGER PRIMARY KEY, code TEXT, created TEXT) strict;"
@@ -176,5 +167,5 @@ def test_verify_fails(tmp_path):
         patch("time.sleep", side_effect=lambda _: _),
         patch("subprocess.run", side_effect=mock_subprocess_run),
     ):
-        exit_code, msg = Command().verify(sqlite_db, config=config_file)
+        exit_code, msg = Command().verify(sqlite_db, config=temp_config)
         assert exit_code == 1

@@ -1,8 +1,8 @@
 from __future__ import annotations
 
+import sys
 from dataclasses import dataclass
 from pathlib import Path
-from typing import override
 
 from django.conf import settings
 
@@ -12,19 +12,37 @@ DJANGO_LITESTREAM_SETTINGS_NAME = "LITESTREAM"
 
 @dataclass(frozen=True)
 class AppSettings:
-    config_file: Path | str = "/etc/litestream.yml"
-    path_prefix: str | None = None
-    bin_path: Path | str = "litestream"
-    dbs: list[dict[str, str]] = None
-    extend_dbs: list[dict[str, str]] = None
-    logging: dict[str, str] = None
-    addr: str | None = None
-    mcp_addr: str | None = None
+    @property
+    def user_settings(self) -> dict[str, object]:
+        return getattr(settings, DJANGO_LITESTREAM_SETTINGS_NAME, {})
 
-    @override
-    def __getattribute__(self, __name: str) -> object:
-        user_settings = getattr(settings, DJANGO_LITESTREAM_SETTINGS_NAME, {})
-        return user_settings.get(__name, super().__getattribute__(__name))  # pyright: ignore[reportAny]
+    @property
+    def path_prefix(self) -> str:
+        return self.user_settings.get("path_prefix", "")
+
+    @property
+    def bin_path(self) -> Path | str:
+        return self.user_settings.get(
+            "bin_path",
+            Path(sys.executable).parent / "litestream",
+        )
+
+    def litestream_settings(self) -> dict[str, object]:
+        config = {}
+        for key in [
+            "dbs",
+            "logging",
+            "addr",
+            "exec",
+            "mcp-addr",
+            "levels",
+            "snapshot",
+            "access-key-id",
+            "secret-access-key",
+        ]:
+            if key in self.user_settings:
+                config[key] = self.user_settings[key]
+        return config
 
 
 app_settings = AppSettings()

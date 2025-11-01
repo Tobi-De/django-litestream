@@ -6,6 +6,11 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [unreleased]
 
+### 🚀 Features
+
+- Upgrade to Litestream 0.5
+- Auto generate and feed config to the litestream bin
+
 ### ⚙️ Miscellaneous Tasks
 
 - Move to uv
