@@ -59,13 +59,13 @@ LITESTREAM_COMMANDS = {
         "description": "List databases specified in config file",
         "arguments": [CONFIG_ARG, NO_EXPAND_ENV_ARG],
     },
-    "generations": {
-        "description": "List available generations for a database",
+    "ltx": {
+        "description": "List available LTX files for a database",
         "arguments": [
+            DB_PATH_OR_REPLICA_URL_ARG,
             CONFIG_ARG,
             NO_EXPAND_ENV_ARG,
-            DB_PATH_OR_REPLICA_URL_ARG,
-            _get_replica_arg("generations"),
+            _get_replica_arg("LTX files"),
         ],
     },
     "replicate": {
@@ -114,7 +114,7 @@ LITESTREAM_COMMANDS = {
             {
                 "name": "-parallelism",
                 "type": int,
-                "help": "Determines the number of WAL files downloaded in parallel. Defaults to 8",
+                "help": "Determines the number of LTX files downloaded in parallel. Defaults to 8",
                 "required": False,
             },
             {
@@ -125,7 +125,7 @@ LITESTREAM_COMMANDS = {
             {
                 "name": "-index",
                 "type": int,
-                "help": "Restore up to a specific WAL index (inclusive). Defaults to use the highest available index.",
+                "help": "Restore up to a specific LTX index (inclusive). Defaults to use the highest available index.",
                 "required": False,
             },
             {
@@ -136,30 +136,7 @@ LITESTREAM_COMMANDS = {
             },
         ],
     },
-    "snapshots": {
-        "description": "List available snapshots for a database",
-        "arguments": [
-            DB_PATH_OR_REPLICA_URL_ARG,
-            CONFIG_ARG,
-            NO_EXPAND_ENV_ARG,
-            _get_replica_arg("snapshots"),
-        ],
-    },
     "version": {"description": "Prints the binary version", "arguments": []},
-    "wal": {
-        "description": "List available WAL files for a database",
-        "arguments": [
-            CONFIG_ARG,
-            NO_EXPAND_ENV_ARG,
-            DB_PATH_OR_REPLICA_URL_ARG,
-            {
-                "name": "-generation",
-                "help": "Optional, filter by a specific generation.",
-                "required": False,
-            },
-            _get_replica_arg("snapshots"),
-        ],
-    },
 }
 
 
@@ -257,6 +234,8 @@ class Command(BaseCommand):
             config["logging"] = app_settings.logging
         if app_settings.addr:
             config["addr"] = app_settings.addr
+        if app_settings.mcp_addr:
+            config["mcp-addr"] = app_settings.mcp_addr
         if not dbs:
             for db_settings in settings.DATABASES.values():
                 if db_settings["ENGINE"] == "django.db.backends.sqlite3":
@@ -267,15 +246,13 @@ class Command(BaseCommand):
                     dbs.append(
                         {
                             "path": location,
-                            "replicas": [
-                                {
-                                    "type": "s3",
-                                    "bucket": "$LITESTREAM_REPLICA_BUCKET",
-                                    "path": path,
-                                    "access-key-id": "$LITESTREAM_ACCESS_KEY_ID",
-                                    "secret-access-key": "$LITESTREAM_SECRET_ACCESS_KEY",
-                                }
-                            ],
+                            "replica": {
+                                "type": "s3",
+                                "bucket": "$LITESTREAM_REPLICA_BUCKET",
+                                "path": path,
+                                "access-key-id": "$LITESTREAM_ACCESS_KEY_ID",
+                                "secret-access-key": "$LITESTREAM_SECRET_ACCESS_KEY",
+                            },
                         }
                     )
         if app_settings.extend_dbs:

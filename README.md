@@ -20,13 +20,12 @@ This package installs and integrates [litestream](https://litestream.io), the SQ
     - [Commands](#commands)
       - [litestream init](#litestream-init)
       - [litestream databases](#litestream-databases)
-      - [litestream generations](#litestream-generations)
+      - [litestream ltx](#litestream-ltx)
       - [litestream replicate](#litestream-replicate)
       - [litestream restore](#litestream-restore)
-      - [litestream verify](#litestream-verify)
-      - [litestream snapshots](#litestream-snapshots)
-      - [litestream wal](#litestream-wal)
+      - [litestream mcp](#litestream-mcp)
       - [litestream version](#litestream-version)
+      - [litestream verify](#litestream-verify)
   - [License](#license)
 
 ## Installation
@@ -59,6 +58,7 @@ LITESTREAM = {
     "extend_dbs": [],
     "logging": {},
     "addr": "",
+    "mcp_addr": "",
 }
 ```
 
@@ -82,6 +82,8 @@ The **bin_path** is the path to the Litestream binary. If you want to use a cust
 The **dbs**, **logging**, and **addr** configurations are the same as those in the Litestream configuration file.
 You can read more about them [here](https://litestream.io/reference/config/#database-settings).
 This allows you to keep your litestream configuration in your Django settings.
+
+The **mcp_addr** is the address for the Model Context Protocol (MCP) server. This enables AI assistants to interact with your Litestream databases and replicas through a standardized HTTP API. For example, you can set it to `":3001"` to listen on all interfaces or `"127.0.0.1:3001"` for localhost only (recommended for production). Learn more about MCP [here](https://litestream.io/reference/mcp/).
 
 The **extend_dbs** is a list of dictionaries with the same format as the `dbs` configuration, and,
 as its name suggests, it will extend the `dbs` configuration when the final configuration is generated.
@@ -120,7 +122,7 @@ And your `BASE_DIR` is `/home/tobi/myproject`, the generated configuration after
 ```yaml
 dbs:
 - path: /home/tobi/myproject/db.sqlite3
-  replicas:
+  replica:
   - type: s3
     bucket: $LITESTREAM_REPLICA_BUCKET
     path: db.sqlite3
@@ -147,15 +149,13 @@ LITESTREAM = {
     "extend_dbs": [
         {
             "path": BASE_DIR / "cache.sqlite3",
-            "replicas": [
-                {
-                    "type": "s3",
-                    "bucket": "$LITESTREAM_REPLICA_BUCKET",
-                    "path": "cache.sqlite3",
-                    "access-key-id": "$LITESTREAM_ACCESS_KEY_ID",
-                    "secret-access-key": "$LITESTREAM_SECRET_ACCESS_KEY",
-                }
-            ]
+            "replica": {
+                "type": "s3",
+                "bucket": "$LITESTREAM_REPLICA_BUCKET",
+                "path": "cache.sqlite3",
+                "access-key-id": "$LITESTREAM_ACCESS_KEY_ID",
+                "secret-access-key": "$LITESTREAM_SECRET_ACCESS_KEY",
+            }
         }
     ]
 }
@@ -181,15 +181,25 @@ python manage.py litestream databases
 > For the rest of the commands, wherever you are asked to specify the database path `db_path`,
 > you can use the Django database alias instead, for example, `default` instead of `/home/tobi/myproject/db.sqlite3`.
 
-#### litestream generations
 
-This works exactly like the equivalent [litestream command](https://litestream.io/reference/generations/).
+#### litestream ltx
+
+> [!NOTE]
+> LTX support is available in Litestream v0.5.0+.
+
+This works exactly like the equivalent [litestream command](https://litestream.io/reference/ltx/) and lists LTX (Litestream Transaction Log) files available for a database or replica. This command is mainly used for debugging and is not typically used in normal usage.
 
 Examples:
 
 ```console
-python manage.py litestream generations default
-python manage.py litestream generations -replica s3 default
+python manage.py litestream ltx default
+python manage.py litestream ltx -replica s3 default
+```
+
+You can also specify a replica URL directly:
+
+```console
+python manage.py litestream ltx s3://mybkt.litestream.io/db
 ```
 
 #### litestream replicate
@@ -217,6 +227,53 @@ python manage.py litestream restore default
 python manage.py litestream restore -if-replica-exists default
 ```
 
+
+#### litestream mcp
+
+> [!NOTE]
+> MCP support is available in Litestream v0.5.0+. This feature is not available in v0.3.13.
+
+The MCP (Model Context Protocol) server allows AI assistants to interact with Litestream databases and replicas through a standardized HTTP API. Unlike other litestream commands, MCP is not a standalone command but a server feature that runs alongside the `replicate` command.
+
+To enable MCP, add the `mcp_addr` configuration to your Django settings:
+
+```python
+# settings.py
+LITESTREAM = {
+    "mcp_addr": ":3001",  # Listen on all interfaces
+    # or for production (localhost only):
+    # "mcp_addr": "127.0.0.1:3001",
+}
+```
+
+Then run the `init` command to generate the configuration file with MCP enabled:
+
+```console
+python manage.py litestream init
+```
+
+This will add `mcp-addr` to your litestream.yml configuration file. The MCP server will automatically start when you run the replicate command:
+
+```console
+python manage.py litestream replicate
+```
+
+The MCP server exposes several tools for AI assistants:
+- `litestream_info` - Get system status and configuration information
+- `litestream_databases` - List all configured databases and their replica status
+- `litestream_ltx` - View available LTX (transaction log) files for a specific database
+- `litestream_restore` - Restore a database to a specific point in time
+
+For more information about MCP integration and AI assistant setup, visit the [official documentation](https://litestream.io/reference/mcp/).
+
+#### litestream version
+
+Print the version of the Litestream binary.
+
+```console
+python manage.py litestream version
+```
+
 #### litestream verify
 
 This command verifies the integrity of your backed-up databases. This process is inspired by the [verify command](https://github.com/fractaledmind/litestream-ruby?tab=readme-ov-file#verification) of the `litestream-ruby` gem.
@@ -236,36 +293,6 @@ python manage.py litestream verify default
 ```
 
 This check ensures that the restored database file Exists, can be opened by SQLite, and has up-to-date data.
-
-#### litestream snapshots
-
-This works exactly like the equivalent [litestream command](https://litestream.io/reference/snapshots/).
-
-Examples:
-
-```console
-python manage.py litestream snapshots default
-python manage.py litestream snapshots -replica s3 default
-```
-
-#### litestream wal
-
-This works exactly like the equivalent [litestream command](https://litestream.io/reference/wal/).
-
-Examples:
-
-```console
-python manage.py litestream wal default
-python manage.py litestream wal -replica s3 default
-```
-
-#### litestream version
-
-Print the version of the Litestream binary.
-
-```console
-python manage.py litestream version
-```
 
 ## License
 

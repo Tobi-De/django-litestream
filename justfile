@@ -8,7 +8,7 @@ _default:
     uv sync
 
 @test:
-    uvx pytest
+    uv run pytest
 
 @fmt:
     just --fmt --unstable

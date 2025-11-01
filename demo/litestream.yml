@@ -1,7 +1,7 @@
 dbs:
-- path: /Users/tobi/Builds/perso/django-litestream/demo/db.sqlite3
-  replicas:
-  - type: s3
+- path: /var/home/tobi/Builds/django-litestream/demo/db.sqlite3
+  replica:
+    type: s3
     bucket: $LITESTREAM_REPLICA_BUCKET
     path: demo/db.sqlite3
     access-key-id: $LITESTREAM_ACCESS_KEY_ID

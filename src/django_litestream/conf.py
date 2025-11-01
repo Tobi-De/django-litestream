@@ -19,6 +19,7 @@ class AppSettings:
     extend_dbs: list[dict[str, str]] = None
     logging: dict[str, str] = None
     addr: str | None = None
+    mcp_addr: str | None = None
 
     @override
     def __getattribute__(self, __name: str) -> object:

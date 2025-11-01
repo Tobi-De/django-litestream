@@ -31,10 +31,10 @@ config_file = LITESTREAM["config_file"]
     "input_args,parsed_args",
     [
         ("databases", f"databases -config {config_file}"),
-        ("generations default", f"generations -config {config_file} db.sqlite3"),
+        ("ltx default", f"ltx -config {config_file} db.sqlite3"),
         (
-            "generations -replica s3 default",
-            f"generations -config {config_file} -replica s3 db.sqlite3",
+            "ltx -replica s3 default",
+            f"ltx -config {config_file} -replica s3 db.sqlite3",
         ),
         ("replicate", f"replicate -config {config_file}"),
         # (
@@ -49,14 +49,6 @@ config_file = LITESTREAM["config_file"]
         (
             "restore -replica s3 -if-db-not-exists default -if-replica-exist -o db2.sqlite2",
             f"restore -config {config_file} -replica s3 -o db2.sqlite2 -if-replica-exists -if-db-not-exists db.sqlite3",
-        ),
-        (
-            "snapshots default -replica s3",
-            f"snapshots -config {config_file} -replica s3 db.sqlite3",
-        ),
-        (
-            "wal default -replica s3",
-            f"wal -config {config_file} -replica s3 db.sqlite3",
         ),
     ],
 )
@@ -78,15 +70,13 @@ def test_init(temp_config_file):
         "dbs": [
             {
                 "path": "db.sqlite3",
-                "replicas": [
-                    {
-                        "type": "s3",
-                        "bucket": "$LITESTREAM_REPLICA_BUCKET",
-                        "path": "db.sqlite3",
-                        "access-key-id": "$LITESTREAM_ACCESS_KEY_ID",
-                        "secret-access-key": "$LITESTREAM_SECRET_ACCESS_KEY",
-                    }
-                ],
+                "replica": {
+                    "type": "s3",
+                    "bucket": "$LITESTREAM_REPLICA_BUCKET",
+                    "path": "db.sqlite3",
+                    "access-key-id": "$LITESTREAM_ACCESS_KEY_ID",
+                    "secret-access-key": "$LITESTREAM_SECRET_ACCESS_KEY",
+                },
             }
         ]
     }
@@ -98,15 +88,13 @@ def test_init_override_db(temp_config_file):
         "dbs": [
             {
                 "path": "db2.sqlite3",
-                "replicas": [
-                    {
-                        "type": "s3",
-                        "bucket": "bucket",
-                        "path": "db2.sqlite3",
-                        "access-key-id": "access-key",
-                        "secret-access": "secret",
-                    }
-                ],
+                "replica": {
+                    "type": "s3",
+                    "bucket": "bucket",
+                    "path": "db2.sqlite3",
+                    "access-key-id": "access-key",
+                    "secret-access": "secret",
+                },
             }
         ],
     }
@@ -124,15 +112,13 @@ def test_init_extend_dbs(temp_config_file):
         "extend_dbs": [
             {
                 "path": "db2.sqlite3",
-                "replicas": [
-                    {
-                        "type": "s3",
-                        "bucket": "bucket",
-                        "path": "db2.sqlite3",
-                        "access-key-id": "access-key",
-                        "secret-access": "secret",
-                    }
-                ],
+                "replica": {
+                    "type": "s3",
+                    "bucket": "bucket",
+                    "path": "db2.sqlite3",
+                    "access-key-id": "access-key",
+                    "secret-access": "secret",
+                },
             }
         ],
     }
@@ -145,15 +131,13 @@ def test_init_extend_dbs(temp_config_file):
         "dbs": [
             {
                 "path": "db.sqlite3",
-                "replicas": [
-                    {
-                        "type": "s3",
-                        "bucket": "$LITESTREAM_REPLICA_BUCKET",
-                        "path": "db.sqlite3",
-                        "access-key-id": "$LITESTREAM_ACCESS_KEY_ID",
-                        "secret-access-key": "$LITESTREAM_SECRET_ACCESS_KEY",
-                    }
-                ],
+                "replica": {
+                    "type": "s3",
+                    "bucket": "$LITESTREAM_REPLICA_BUCKET",
+                    "path": "db.sqlite3",
+                    "access-key-id": "$LITESTREAM_ACCESS_KEY_ID",
+                    "secret-access-key": "$LITESTREAM_SECRET_ACCESS_KEY",
+                },
             },
             litestream_config["extend_dbs"][0],
         ]
