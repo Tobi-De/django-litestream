@@ -110,8 +110,8 @@ LITESTREAM = {
 ```python
 # settings.py
 DATABASES = {
-    "default": {"ENGINE": "django.db.backends.sqlite3", "NAME": "db.sqlite3"},
-    "cache": {"ENGINE": "django.db.backends.sqlite3", "NAME": "cache.sqlite3"},
+    "default": {"ENGINE": "django.db.backends.sqlite3", "NAME": BASE_DIR / "db.sqlite3"},
+    "cache": {"ENGINE": "django.db.backends.sqlite3", "NAME": BASE_DIR / "cache.sqlite3"},
 }
 
 LITESTREAM = {
@@ -129,6 +129,31 @@ LITESTREAM = {
     ]
 }
 ```
+
+For the example above the dynamically generated configuration will look like this (assuming `BASE_DIR` is `/home/tobi/myproject`):
+
+```yaml
+access-key-id: $LITESTREAM_ACCESS_KEY_ID
+secret-access-key: $LITESTREAM_SECRET_ACCESS_KEY
+dbs:
+- path: /home/tobi/myproject/db.sqlite3
+  replica:
+    type: s3
+    bucket: $LITESTREAM_REPLICA_BUCKET
+    path: db.sqlite3
+- path: /home/tobi/myproject/cache.sqlite3
+  replica:
+    type: s3
+    bucket: "my-cache-bucke
+    path: custom-cache.sqlite3
+```
+
+You can tweak these settings according to your preferences. Check the [databases settings reference](https://litestream.io/reference/config/#database-settings) for more information.
+
+You can omit the `access-key-id` and `secret-access-key` keys and litestream will automatically use any of the environment variables below if available:
+
+- `AWS_ACCESS_KEY_ID` or `LITESTREAM_ACCESS_KEY_ID`
+- `AWS_SECRET_ACCESS_KEY` or `LITESTREAM_SECRET_ACCESS_KEY`
 
 ### Commands
 
@@ -156,58 +181,6 @@ Examples:
 ```console
 python manage.py litestream databases
 ```
-
-> [!IMPORTANT]
-> For the rest of the commands, wherever you are asked to specify the database path `db_path`,
-> you can use the Django database alias instead, for example, `default` instead of the full path to your database file.
-
-For example, if you have the following `DATABASES` and `LITESTREAM` configuration:
-
-```python
-DATABASES = {
-    "default": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "db.sqlite3",
-    },
-    "other": {
-        "ENGINE": "django.db.backends.sqlite3",
-        "NAME": BASE_DIR / "other.sqlite3",
-    },
-}
-
-LITESTREAM = {
-    "dbs": [
-        {"path": "default"},
-        {"path": "other"},
-    ]
-}
-```
-
-And your `BASE_DIR` is `/home/tobi/myproject`, the dynamically generated configuration will look like this:
-
-```yaml
-access-key-id: $LITESTREAM_ACCESS_KEY_ID
-secret-access-key: $LITESTREAM_SECRET_ACCESS_KEY
-dbs:
-- path: /home/tobi/myproject/db.sqlite3
-  replica:
-    type: s3
-    bucket: $LITESTREAM_REPLICA_BUCKET
-    path: db.sqlite3
-- path: /home/tobi/myproject/other.sqlite3
-  replica:
-    type: s3
-    bucket: $LITESTREAM_REPLICA_BUCKET
-    path: other.sqlite3
-```
-
-You can tweak these settings according to your preferences. Check the [databases settings reference](https://litestream.io/reference/config/#database-settings) for more information.
-
-You can omit the `access-key-id` and `secret-access-key` keys and litestream will automatically use any of the environment variables below if available:
-
-- `AWS_ACCESS_KEY_ID` or `LITESTREAM_ACCESS_KEY_ID`
-- `AWS_SECRET_ACCESS_KEY` or `LITESTREAM_SECRET_ACCESS_KEY`
-
 
 > [!IMPORTANT]
 > For the rest of the commands, wherever you are asked to specify the database path `db_path`,
