@@ -21,7 +21,6 @@ This package installs and integrates [litestream](https://litestream.io), the SQ
     - [Commands](#commands)
       - [litestream config](#litestream-config)
       - [litestream databases](#litestream-databases)
-      - [litestream databases](#litestream-databases-1)
       - [litestream ltx](#litestream-ltx)
       - [litestream replicate](#litestream-replicate)
       - [litestream restore](#litestream-restore)
@@ -53,12 +52,10 @@ These are the available configurations for `django-litestream`:
 ```python
 # settings.py
 LITESTREAM = {
-    "path_prefix": None,
-    "bin_path": "litestream",
+    "path_prefix": "",
+    "bin_path": "./venv/bin/litestream",
     "dbs": [],
-    "logging": {},
-    "addr": "",
-    "mcp_addr": "",
+    # ... all other Litestream configuration options
 }
 ```
 
@@ -67,19 +64,9 @@ LITESTREAM = {
 
 The **path_prefix** is a string that will be prepended to the path of every database in the `dbs` configuration. This is useful if you are replicating databases from different projects to the same bucket, you could set the `path_prefix` to the project name so that the databases are stored in different folders in the bucket.
 
-The **bin_path** is the path to the Litestream binary. If you want to use a custom installation, specify it here.
+The **bin_path** is the path to the Litestream binary. If not found, the binary will be automatically downloaded on first use. You can specify a custom installation path here if needed.
 
-The **dbs** configuration allows you to specify which databases should be backed up by Litestream. You must explicitly list each database you want to replicate. For each database entry:
-- If you omit the `replica` configuration, django-litestream will automatically generate a default S3 replica configuration using environment variables
-- If you provide a `replica` configuration, your custom settings will be used exactly as specified
-
-This explicit approach gives you full control over what gets backed up and ensures no databases are accidentally replicated.
-
-The **logging** and **addr** configurations are the same as those in the Litestream configuration file.
-You can read more about them [here](https://litestream.io/reference/config/#database-settings).
-This allows you to keep all your litestream configuration in your Django settings.
-
-The **mcp_addr** is the address for the Model Context Protocol (MCP) server. This enables AI assistants to interact with your Litestream databases and replicas through a standardized HTTP API. For example, you can set it to `":3001"` to listen on all interfaces or `"127.0.0.1:3001"` for localhost only (recommended for production). Learn more about MCP [here](https://litestream.io/reference/mcp/).
+All other configuration options (such as `dbs`, `logging`, `addr`, `mcp-addr`, `access-key-id`, `secret-access-key`, etc.) follow the same structure as the [Litestream configuration file](https://litestream.io/reference/config/). You can use any option documented in the official Litestream configuration reference.
 
 #### Configuration Examples
 
@@ -218,16 +205,6 @@ You can omit the `access-key-id` and `secret-access-key` keys and litestream wil
 - `AWS_SECRET_ACCESS_KEY` or `LITESTREAM_SECRET_ACCESS_KEY`
 
 
-#### litestream databases
-
-This works exactly like the equivalent [litestream command](https://litestream.io/reference/databases/) and lists all the databases.
-
-Examples:
-
-```console
-python manage.py litestream databases
-```
-
 > [!IMPORTANT]
 > For the rest of the commands, wherever you are asked to specify the database path `db_path`,
 > you can use the Django database alias instead, for example, `default` instead of `/home/tobi/myproject/db.sqlite3`.
@@ -277,7 +254,6 @@ Examples:
 python manage.py litestream restore default
 python manage.py litestream restore -if-replica-exists default
 ```
-
 
 #### litestream mcp
 

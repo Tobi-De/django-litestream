@@ -305,7 +305,6 @@ def generate_temp_config():
             }
         else:
             db_conf["replica"] = user_db["replica"]
-        # validate the config here before adding
         processed_dbs.append(db_conf)
 
     config["dbs"] = processed_dbs
