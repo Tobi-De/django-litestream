@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.2] - 2025-11-02
+
+### 🐛 Bug Fixes
+
+- Resolve db absolute path
+
 ## [0.5.1] - 2025-11-02
 
 ### 📚 Documentation
