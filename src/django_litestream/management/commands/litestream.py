@@ -288,7 +288,7 @@ def generate_temp_config():
             continue
         if db_settings["ENGINE"] != "django.db.backends.sqlite3":
             continue
-        db_conf = {"path": str(path)}
+        db_conf = {"path": str(Path(path).resolve())}
         if "replica" not in user_db:
             # since we are adding replica config, add global credentials too if missing
             if "access-key-id" not in config:

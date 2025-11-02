@@ -140,11 +140,11 @@ dbs:
   replica:
     type: s3
     bucket: $LITESTREAM_REPLICA_BUCKET
-    path: db.sqlite3
+    path: myproject/db.sqlite3
 - path: /home/tobi/myproject/cache.sqlite3
   replica:
     type: s3
-    bucket: "my-cache-bucke
+    bucket: "my-cache-bucket"
     path: custom-cache.sqlite3
 ```
 
