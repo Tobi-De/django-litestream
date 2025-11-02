@@ -2,6 +2,10 @@
 
 [![PyPI - Version](https://img.shields.io/pypi/v/django-litestream.svg)](https://pypi.org/project/django-litestream)
 [![PyPI - Python Version](https://img.shields.io/pypi/pyversions/django-litestream.svg)](https://pypi.org/project/django-litestream)
+[![PyPI - Versions from Framework Classifiers](https://img.shields.io/pypi/frameworkversions/django/django-litestream)](https://pypi.org/project/django-litestream/)
+[![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/Tobi-De/django-litestream/blob/main/LICENSE.txt)
+[![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
+
 
 -----
 
@@ -54,7 +58,7 @@ These are the available configurations for `django-litestream`:
 LITESTREAM = {
     "path_prefix": "",
     "bin_path": "./venv/bin/litestream",
-    "dbs": [],
+    "dbs": [{"path": "default"}],
     # ... all other Litestream configuration options
 }
 ```
