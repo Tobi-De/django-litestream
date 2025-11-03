@@ -244,9 +244,9 @@ To enable MCP, add the `mcp_addr` configuration to your Django settings:
 ```python
 # settings.py
 LITESTREAM = {
-    "mcp_addr": ":3001",  # Listen on all interfaces
+    "mcp-addr": ":3001",  # Listen on all interfaces
     # or for production (localhost only):
-    # "mcp_addr": "127.0.0.1:3001",
+    # "mcp-addr": "127.0.0.1:3001",
 }
 ```
 
