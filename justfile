@@ -23,6 +23,10 @@ _default:
 logchanges *ARGS:
     uvx git-cliff --output CHANGELOG.md {{ ARGS }}
 
+# Serve documentation with auto-reload
+@docs-serve:
+     uv run --group docs sphinx-autobuild docs docs/_build/html  --port 8002 --watch docs --open-browser
+
 # Bump project version and update changelog
 bumpver VERSION:
     #!/usr/bin/env bash

@@ -44,6 +44,13 @@ urls.Source = "https://github.com/Tobi-De/django-litestream"
 
 [dependency-groups]
 dev = [ "pytest" ]
+docs = [
+    "myst-parser>=4.0.1",
+    "shibuya>=2025.12.19",
+    "sphinx-autobuild>=2025.8.25",
+    "sphinx-copybutton>=0.5.2",
+    "sphinx-design>=0.6.1",
+]
 
 [tool.uv]
 default-groups = [ "dev" ]
