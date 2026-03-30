@@ -59,10 +59,4 @@ def ensure_vfs_loaded() -> None:
                 f"Error: {e}"
             ) from e
 
-
         _vfs_loaded = True
-
-
-
-
-

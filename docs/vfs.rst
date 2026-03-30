@@ -162,24 +162,11 @@ Use VFS replicas for heavy analytics without impacting your primary database:
 Monitoring Health
 ~~~~~~~~~~~~~~~~~
 
-Check replica health status:
-
-.. code-block:: python
-
-   from django_litestream import get_vfs_status
-
-   status = get_vfs_status("prod_replica")
-
-   if status["lag_seconds"] and status["lag_seconds"] < 60:
-       print(f"Replica is healthy (lag: {status['lag_seconds']}s)")
-   else:
-       print("Replica is stale or unavailable")
-
-Or use the management command:
+Check replica health using the Litestream ``status`` command:
 
 .. code-block:: bash
 
-   python manage.py litestream vfs-status
+   python manage.py litestream status
 
 Limitations
 -----------
@@ -188,7 +175,7 @@ Limitations
 
 - Write operations will fail with an error
 - Use the primary database for all writes
-- See :doc:`advanced` for automatic read/write routing
+- Use ``.using('replica_name')`` to explicitly query replicas
 
 **Platform support:**
 
@@ -212,16 +199,12 @@ Best Practices
 
 2. **Monitor replication lag:**
 
-   Use ``vfs-status`` command to ensure replicas are healthy
+   Use ``status`` command to check replica health
 
 3. **Separate concerns:**
 
    - Primary database: all writes
    - VFS replicas: heavy reads, analytics
-
-4. **Consider using the router:**
-
-   See :doc:`advanced` for automatic read distribution
 
 Troubleshooting
 ---------------
@@ -248,8 +231,7 @@ Check replication status:
 
 .. code-block:: bash
 
-   python manage.py litestream databases
-   python manage.py litestream vfs-status
+   python manage.py litestream status
 
 Ensure the primary replication process is running:
 
@@ -260,5 +242,4 @@ Ensure the primary replication process is running:
 Next Steps
 ----------
 
-- See :doc:`advanced` for time-travel queries and automatic routing
-- See `Litestream VFS documentation <https://litestream.io/guides/vfs/>`_
+- See `Litestream VFS documentation <https://litestream.io/guides/vfs/>`_ for advanced VFS features

@@ -41,7 +41,8 @@ def test_generate_temp_config_user_defined_with_replica():
                 config = load(f, Loader=Loader)
 
             assert len(config["dbs"]) == 1
-            assert config["dbs"][0]["path"] == "db.sqlite3"
+            # Path is resolved to absolute path
+            assert config["dbs"][0]["path"].endswith("db.sqlite3")
             assert config["dbs"][0]["replica"]["bucket"] == "my-bucket"
             assert config["dbs"][0]["replica"]["path"] == "custom.sqlite3"
 
@@ -61,7 +62,8 @@ def test_generate_temp_config_user_defined_auto_replica():
                 config = load(f, Loader=Loader)
 
             assert len(config["dbs"]) == 1
-            assert config["dbs"][0]["path"] == "db.sqlite3"
+            # Path is resolved to absolute path
+            assert config["dbs"][0]["path"].endswith("db.sqlite3")
             # Replica should be auto-generated
             assert "replica" in config["dbs"][0]
             assert config["dbs"][0]["replica"]["type"] == "s3"
@@ -125,11 +127,11 @@ def test_generate_temp_config_multiple_dbs():
                 config = load(f, Loader=Loader)
 
             assert len(config["dbs"]) == 2
-            # First db should have auto-generated replica
-            assert config["dbs"][0]["path"] == "db.sqlite3"
+            # First db should have auto-generated replica (path is resolved to absolute)
+            assert config["dbs"][0]["path"].endswith("db.sqlite3")
             assert config["dbs"][0]["replica"]["bucket"] == "$LITESTREAM_REPLICA_BUCKET"
-            # Second db should use user-defined replica
-            assert config["dbs"][1]["path"] == "other.sqlite3"
+            # Second db should use user-defined replica (path is resolved to absolute)
+            assert config["dbs"][1]["path"].endswith("other.sqlite3")
             assert config["dbs"][1]["replica"]["bucket"] == "other-bucket"
 
 

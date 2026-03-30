@@ -11,8 +11,6 @@ django-litestream integrates `Litestream <https://litestream.io>`_ into Django, 
 
 - ✅ Continuous SQLite replication to S3, GCS, Azure Blob Storage, and more
 - ✅ Read-only VFS replicas for zero-download database access
-- ✅ Time-travel queries for historical data analysis
-- ✅ Automatic read distribution with lag-aware routing
 - ✅ All Litestream commands via Django management commands
 - ✅ Auto-download of Litestream binary on first use
 
@@ -72,29 +70,6 @@ Access cloud-stored replicas without downloading the entire database:
    # Query from cloud replica
    users = User.objects.using('prod_replica').all()
 
-**Time-Travel Queries**
-
-Query your database at any point in history:
-
-.. code-block:: python
-
-   from django_litestream import time_travel
-
-   with time_travel("prod_replica", "1 hour ago") as db:
-       old_users = User.objects.using(db).all()
-
-**Automatic Read Distribution**
-
-Route reads to replicas and writes to primary automatically:
-
-.. code-block:: python
-
-   DATABASE_ROUTERS = ['django_litestream.db.routers.LitestreamRouter']
-
-   # Reads go to VFS replicas, writes to primary - no code changes!
-   users = User.objects.all()  # Reads from replica
-   user.save()  # Writes to primary
-
 Documentation
 -------------
 
@@ -105,7 +80,6 @@ Documentation
    configuration
    commands
    vfs
-   advanced
 
 Community
 ---------

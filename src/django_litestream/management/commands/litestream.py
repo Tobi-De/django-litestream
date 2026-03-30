@@ -21,15 +21,14 @@ import io
 import tarfile
 import urllib.request
 import zipfile
-from django_litestream import get_vfs_databases, get_vfs_status
 from django_litestream.conf import app_settings
 
 if TYPE_CHECKING:
     from argparse import ArgumentParser
 
 
-LITESTREAM_VERSION = "0.5.5"
-VFS_VERSION = "0.5.5"
+LITESTREAM_VERSION = "0.5.10"
+VFS_VERSION = "0.5.10"
 UPSTREAM_REPO = "https://github.com/benbjohnson/litestream"
 
 LITESTREAM_COMMANDS = {
@@ -49,6 +48,12 @@ LITESTREAM_COMMANDS = {
                 "help": "Optional, filters by replica. Only applies when listing database LTX files.",
                 "required": False,
             },
+            {
+                "name": "-level",
+                "type": int,
+                "help": "View files at a specific compaction level.",
+                "required": False,
+            },
         ],
     },
     "replicate": {
@@ -59,6 +64,35 @@ LITESTREAM_COMMANDS = {
                 "nargs": "+",
                 "help": "Executes a subcommand. Litestream will exit when the child process exits. "
                 "Useful for simple process management.",
+                "required": False,
+            },
+            {
+                "name": "-once",
+                "action": "store_true",
+                "help": "Replicate once and exit.",
+                "required": False,
+            },
+            {
+                "name": "-force-snapshot",
+                "action": "store_true",
+                "help": "Force a snapshot on startup.",
+                "required": False,
+            },
+            {
+                "name": "-enforce-retention",
+                "action": "store_true",
+                "help": "Enforce retention policy on startup.",
+                "required": False,
+            },
+            {
+                "name": "-restore-if-db-not-exists",
+                "action": "store_true",
+                "help": "Restore database from replica if it doesn't exist locally.",
+                "required": False,
+            },
+            {
+                "name": "--log-level",
+                "help": "Set log level (debug, info, warn, error).",
                 "required": False,
             },
         ],
@@ -72,7 +106,7 @@ LITESTREAM_COMMANDS = {
             },
             {
                 "name": "-replica",
-                "help": "Restore from a specific replica.Defaults to replica with latest data.",
+                "help": "Restore from a specific replica. Defaults to replica with latest data.",
                 "required": False,
             },
             {
@@ -96,12 +130,12 @@ LITESTREAM_COMMANDS = {
             {
                 "name": "-parallelism",
                 "type": int,
-                "help": "Determines the number of LTX files downloaded in parallel. Defaults to 8",
+                "help": "Determines the number of LTX files downloaded in parallel. Defaults to 8.",
                 "required": False,
             },
             {
                 "name": "-generation",
-                "help": "Restore from a specific generation. Defaults to generation with latest data",
+                "help": "Restore from a specific generation. Defaults to generation with latest data.",
                 "required": False,
             },
             {
@@ -112,9 +146,33 @@ LITESTREAM_COMMANDS = {
             },
             {
                 "name": "-timestamp",
-                # "type": datetime,
                 "help": "Restore to a specific point-in-time. Defaults to use the latest available backup.",
                 "required": False,
+            },
+            {
+                "name": "-f",
+                "action": "store_true",
+                "help": "Follow mode: continuously restore/follow the database.",
+                "required": False,
+            },
+        ],
+    },
+    "status": {
+        "description": "Show replication status for databases",
+        "arguments": [
+            {
+                "name": "db_path",
+                "nargs": "?",
+                "help": "Path to a specific database (optional, shows all if omitted)",
+            },
+        ],
+    },
+    "sync": {
+        "description": "Force immediate WAL-to-LTX sync for a database",
+        "arguments": [
+            {
+                "name": "db_path",
+                "help": "Path to the SQLite database file",
             },
         ],
     },
@@ -167,12 +225,6 @@ class Command(BaseCommand):
             description="Download and install the Litestream VFS extension for read-only replica access",
         )
 
-        subcommands.add_parser(
-            name="vfs-status",
-            help="Show status of all VFS replica databases",
-            description="Display replication lag, transaction IDs, and health status for VFS replicas",
-        )
-
     def handle(self, *_, **options) -> None:
         # Check if litestream binary exists, download if not
         if not app_settings.bin_path.exists():
@@ -216,68 +268,6 @@ class Command(BaseCommand):
                     self.style.ERROR(f"Failed to install VFS extension: {e}")
                 )
                 exit(1)
-        elif options["subcommand"] == "vfs-status":
-
-            vfs_databases = get_vfs_databases()
-
-            if not vfs_databases:
-                self.stdout.write(
-                    self.style.WARNING(
-                        "No VFS databases configured. Add VFS replicas to LITESTREAM['vfs'] in settings."
-                    )
-                )
-                return
-
-            self.stdout.write(
-                self.style.SUCCESS(f"Found {len(vfs_databases)} VFS database(s):\n")
-            )
-
-            for alias in vfs_databases:
-                self.stdout.write(f"\n{self.style.HTTP_INFO(alias)}:")
-                try:
-                    status = get_vfs_status(alias)
-
-                    self.stdout.write(f"  Replica URL: {status['replica_url']}")
-
-                    if status['txid'] is not None:
-                        self.stdout.write(f"  Transaction ID: {status['txid']}")
-                    else:
-                        self.stdout.write(
-                            f"  Transaction ID: {self.style.WARNING('unavailable')}"
-                        )
-
-                    # Display lag with color coding
-                    if status['lag_seconds'] is not None:
-                        lag = status['lag_seconds']
-                        if lag < 60:
-                            lag_style = self.style.SUCCESS
-                            lag_msg = f"{lag:.1f}s"
-                        elif lag < 300:  # 5 minutes
-                            lag_style = self.style.WARNING
-                            lag_msg = f"{lag:.1f}s ({lag/60:.1f}m)"
-                        else:
-                            lag_style = self.style.ERROR
-                            lag_msg = f"{lag:.1f}s ({lag/60:.1f}m)"
-
-                        self.stdout.write(f"  Replication Lag: {lag_style(lag_msg)}")
-                    else:
-                        self.stdout.write(
-                            f"  Replication Lag: {self.style.WARNING('unavailable')}"
-                        )
-
-                    # Overall status
-                    if status['txid'] is not None and status['lag_seconds'] is not None:
-                        if status['lag_seconds'] < 60:
-                            self.stdout.write(f"  Status: {self.style.SUCCESS('✓ Healthy')}")
-                        elif status['lag_seconds'] < 300:
-                            self.stdout.write(f"  Status: {self.style.WARNING('⚠ Lagging')}")
-                        else:
-                            self.stdout.write(f"  Status: {self.style.ERROR('✗ Stale')}")
-                    else:
-                        self.stdout.write(f"  Status: {self.style.WARNING('? Unknown')}")
-
-                except Exception as e:
-                    self.stdout.write(f"  {self.style.ERROR(f'Error: {e}')}")
         elif not options["subcommand"]:
             self.print_help("manage", "litestream")
         else:
@@ -428,7 +418,6 @@ def generate_temp_config():
         Path(config_path).unlink(missing_ok=True)
 
 
-
 def _build_litestream_download_url(basename: str, version: str) -> str:
     system = platform.system().lower()
     machine = platform.machine().lower()
@@ -452,7 +441,9 @@ def _build_litestream_download_url(basename: str, version: str) -> str:
         )
 
     if basename == "litestream-vfs" and system == "windows":
-        raise ValueError(f"Unsupported operating system for VFS: {system}. Windows is not supported.")
+        raise ValueError(
+            f"Unsupported operating system for VFS: {system}. Windows is not supported."
+        )
 
     if system not in ("linux", "darwin", "windows"):
         raise ValueError(f"Unsupported operating system: {system}")
@@ -479,11 +470,10 @@ def _build_litestream_download_url(basename: str, version: str) -> str:
     return f"{UPSTREAM_REPO}/releases/download/v{version}/{filename}"
 
 
-
 def download_binary():
     download_url = _build_litestream_download_url("litestream", LITESTREAM_VERSION)
     system = platform.system().lower()
-    
+
     print(f"Downloading litestream {LITESTREAM_VERSION}...")
     print(f"URL: {download_url}")
 
