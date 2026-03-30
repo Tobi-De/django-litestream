@@ -29,6 +29,15 @@ class AppSettings:
             )
         )
 
+    @property
+    def vfs_extension_path(self) -> Path:
+        return Path(
+            self.user_settings.get(
+                "vfs_extension_path",
+                Path(sys.executable).parent.parent / "lib" / "litestream-vfs.so",
+            )
+        )
+
     def litestream_settings(self) -> dict[str, object]:
         config = {}
         for key in [

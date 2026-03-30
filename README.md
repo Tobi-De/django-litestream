@@ -6,75 +6,35 @@
 [![MIT License](https://img.shields.io/badge/license-MIT-blue.svg)](https://github.com/Tobi-De/django-litestream/blob/main/LICENSE.txt)
 [![Ruff](https://img.shields.io/endpoint?url=https://raw.githubusercontent.com/astral-sh/ruff/main/assets/badge/v2.json)](https://github.com/astral-sh/ruff)
 
+**Litestream integration for Django - SQLite replication made simple**
 
------
+This package integrates [Litestream](https://litestream.io), the SQLite replication tool, as Django management commands. It provides:
 
-> [!IMPORTANT]
-> This package currently contains minimal features and is a work-in-progress
-
-This package installs and integrates [litestream](https://litestream.io), the SQLite replication tool, as a Django command.
-
-## Table of Contents
-
-- [django-litestream](#django-litestream)
-  - [Table of Contents](#table-of-contents)
-  - [Installation](#installation)
-  - [Usage](#usage)
-    - [Configuration](#configuration)
-      - [Configuration Examples](#configuration-examples)
-    - [Commands](#commands)
-      - [litestream config](#litestream-config)
-      - [litestream databases](#litestream-databases)
-      - [litestream ltx](#litestream-ltx)
-      - [litestream replicate](#litestream-replicate)
-      - [litestream restore](#litestream-restore)
-      - [litestream mcp](#litestream-mcp)
-      - [litestream version](#litestream-version)
-      - [litestream verify](#litestream-verify)
-  - [License](#license)
+- ✅ Continuous SQLite replication to S3, GCS, Azure Blob Storage, and more
+- ✅ Read-only VFS replicas for zero-download database access
+- ✅ Time-travel queries for historical data analysis
+- ✅ Automatic read distribution with lag-aware routing
+- ✅ All Litestream commands via `python manage.py litestream`
+- ✅ Auto-download of Litestream binary on first use
 
 ## Installation
 
-```console
+```bash
 pip install django-litestream
 ```
 
-Add `django_litestream` to your Django `INSTALLED_APPS`.
-
-## Usage
-
-The package integrates all the commands and options from the `litestream` command-line tool with only minor changes.
-
-> [!Note]
-> Django 5.1 was released a few days ago (as of the time of writing). If you are
-> looking for a good production configuration for SQLite, check out [this blog post](https://blog.pecar.me/sqlite-django-config#in-django-51-or-newer).
-
-### Configuration
-
-These are the available configurations for `django-litestream`:
+Add to `INSTALLED_APPS`:
 
 ```python
 # settings.py
-LITESTREAM = {
-    "path_prefix": "",
-    "bin_path": "./venv/bin/litestream",
-    "dbs": [{"path": "default"}],
-    # ... all other Litestream configuration options
-}
+INSTALLED_APPS = [
+    # ...
+    "django_litestream",
+]
 ```
 
-> [!IMPORTANT]
-> All litestream commands automatically use the configuration from your Django settings. Configuration is dynamically generated when you run commands - no config file needed!
+Configure replication:
 
-The **path_prefix** is a string that will be prepended to the path of every database in the `dbs` configuration. This is useful if you are replicating databases from different projects to the same bucket, you could set the `path_prefix` to the project name so that the databases are stored in different folders in the bucket.
-
-The **bin_path** is the path to the Litestream binary. If not found, the binary will be automatically downloaded on first use. You can specify a custom installation path here if needed.
-
-All other configuration options (such as `dbs`, `logging`, `addr`, `mcp-addr`, `access-key-id`, `secret-access-key`, etc.) follow the same structure as the [Litestream configuration file](https://litestream.io/reference/config/). You can use any option documented in the official Litestream configuration reference.
-
-#### Configuration Examples
-
-**Simple configuration with auto-generated replica:**
 ```python
 # settings.py
 LITESTREAM = {
@@ -82,215 +42,98 @@ LITESTREAM = {
         {"path": "default"},  # Use Django database alias
     ]
 }
-# This will use environment variables for S3 credentials:
-# - LITESTREAM_REPLICA_BUCKET (or AWS_BUCKET)
-# - LITESTREAM_ACCESS_KEY_ID (or AWS_ACCESS_KEY_ID)
-# - LITESTREAM_SECRET_ACCESS_KEY (or AWS_SECRET_ACCESS_KEY)
 ```
 
-**Manual replica configuration:**
-```python
-# settings.py
-LITESTREAM = {
-    "dbs": [
-        {
-            "path": "default",  # Django alias
-            "replica": {
-                "type": "s3",
-                "bucket": "my-bucket",
-                "path": "db.sqlite3",
-                "region": "us-east-1",
-            }
-        }
-    ]
-}
+Set up cloud storage credentials:
+
+```bash
+export LITESTREAM_REPLICA_BUCKET=my-backup-bucket
+export LITESTREAM_ACCESS_KEY_ID=your-access-key
+export LITESTREAM_SECRET_ACCESS_KEY=your-secret-key
 ```
 
-**Multiple databases with path_prefix:**
-```python
-# settings.py
-DATABASES = {
-    "default": {"ENGINE": "django.db.backends.sqlite3", "NAME": BASE_DIR / "db.sqlite3"},
-    "cache": {"ENGINE": "django.db.backends.sqlite3", "NAME": BASE_DIR / "cache.sqlite3"},
-}
+## Quick Start
 
-LITESTREAM = {
-    "path_prefix": "myproject",  # Prepended to replica paths
-    "dbs": [
-        {"path": "default"},  # Will replicate to myproject/db.sqlite3
-        {
-            "path": "cache",
-            "replica": {
-                "type": "s3",
-                "bucket": "my-cache-bucket",
-                "path": "custom-cache.sqlite3",
-            }
-        }
-    ]
-}
-```
+Start continuous replication:
 
-For the example above the dynamically generated configuration will look like this (assuming `BASE_DIR` is `/home/tobi/myproject`):
-
-```yaml
-access-key-id: $LITESTREAM_ACCESS_KEY_ID
-secret-access-key: $LITESTREAM_SECRET_ACCESS_KEY
-dbs:
-- path: /home/tobi/myproject/db.sqlite3
-  replica:
-    type: s3
-    bucket: $LITESTREAM_REPLICA_BUCKET
-    path: myproject/db.sqlite3
-- path: /home/tobi/myproject/cache.sqlite3
-  replica:
-    type: s3
-    bucket: "my-cache-bucket"
-    path: custom-cache.sqlite3
-```
-
-You can tweak these settings according to your preferences. Check the [databases settings reference](https://litestream.io/reference/config/#database-settings) for more information.
-
-You can omit the `access-key-id` and `secret-access-key` keys and litestream will automatically use any of the environment variables below if available:
-
-- `AWS_ACCESS_KEY_ID` or `LITESTREAM_ACCESS_KEY_ID`
-- `AWS_SECRET_ACCESS_KEY` or `LITESTREAM_SECRET_ACCESS_KEY`
-
-### Commands
-
-You can run `python manage.py litestream` to see all available commands.
-
-#### litestream config
-
-```console
-python manage.py litestream config
-```
-
-This command displays the current Litestream configuration that will be used by all commands. It shows the configuration generated from your Django settings in YAML format. This is useful for:
-- Verifying your configuration before running replication
-- Debugging configuration issues
-- Understanding what will be passed to the Litestream binary
-
-The output matches the format of a litestream.yml file.
-
-#### litestream databases
-
-This works exactly like the equivalent [litestream command](https://litestream.io/reference/databases/) and lists all the databases.
-
-Examples:
-
-```console
-python manage.py litestream databases
-```
-
-> [!IMPORTANT]
-> For the rest of the commands, wherever you are asked to specify the database path `db_path`,
-> you can use the Django database alias instead, for example, `default` instead of `/home/tobi/myproject/db.sqlite3`.
-
-
-#### litestream ltx
-
-> [!NOTE]
-> LTX support is available in Litestream v0.5.0+.
-
-This works exactly like the equivalent [litestream command](https://litestream.io/reference/ltx/) and lists LTX (Litestream Transaction Log) files available for a database or replica. This command is mainly used for debugging and is not typically used in normal usage.
-
-Examples:
-
-```console
-python manage.py litestream ltx default
-python manage.py litestream ltx -replica s3 default
-```
-
-You can also specify a replica URL directly:
-
-```console
-python manage.py litestream ltx s3://mybkt.litestream.io/db
-```
-
-#### litestream replicate
-
-This works exactly like the equivalent [litestream command](https://litestream.io/reference/replicate/), except it does not support the ability to replicate a single file.
-Running `litestream replicate db_path replica_url` won't work. You can only run:
-
-```console
+```bash
 python manage.py litestream replicate
-python manage.py litestream replicate -exec "gunicorn myproject.wsgi:application"
 ```
 
-This is the command you will run in production using a process manager as its own process. You can run it separately (the first example) or
-use it to run your main Django process (second example). It would basically act as a process manager itself and run both the replicate
-and the Django process. The replication process will exit when your web server shuts down.
+Restore from backup:
 
-#### litestream restore
-
-This works exactly like the equivalent [litestream command](https://litestream.io/reference/restore/).
-
-Examples:
-
-```console
+```bash
 python manage.py litestream restore default
-python manage.py litestream restore -if-replica-exists default
 ```
 
-#### litestream mcp
+## Documentation
 
-> [!NOTE]
-> MCP support is available in Litestream v0.5.0+. This feature is not available in v0.3.13.
+📖 **[Read the full documentation](https://django-litestream.readthedocs.io/)**
 
-The MCP (Model Context Protocol) server allows AI assistants to interact with Litestream databases and replicas through a standardized HTTP API. Unlike other litestream commands, MCP is not a standalone command but a server feature that runs alongside the `replicate` command.
+- [Installation Guide](https://django-litestream.readthedocs.io/en/latest/installation.html)
+- [Configuration](https://django-litestream.readthedocs.io/en/latest/configuration.html)
+- [Commands Reference](https://django-litestream.readthedocs.io/en/latest/commands.html)
+- [VFS Read Replicas](https://django-litestream.readthedocs.io/en/latest/vfs.html)
+- [Advanced Features](https://django-litestream.readthedocs.io/en/latest/advanced.html)
 
-To enable MCP, add the `mcp_addr` configuration to your Django settings:
+## Features
+
+### Continuous Replication
+
+```bash
+# Start replication
+python manage.py litestream replicate
+
+# Restore database
+python manage.py litestream restore default
+```
+
+### VFS Read Replicas
+
+Access cloud-stored replicas without downloading:
 
 ```python
-# settings.py
-LITESTREAM = {
-    "mcp-addr": ":3001",  # Listen on all interfaces
-    # or for production (localhost only):
-    # "mcp-addr": "127.0.0.1:3001",
+from django_litestream import get_vfs_databases
+
+DATABASES = {
+    "default": {...},
+    **get_vfs_databases(),
 }
+
+# Query from replica
+users = User.objects.using('prod_replica').all()
 ```
 
-The MCP server will automatically start when you run the replicate command:
+### Time-Travel Queries
 
-```console
-python manage.py litestream replicate
+Query historical database state:
+
+```python
+from django_litestream import time_travel
+
+with time_travel("prod_replica", "1 hour ago") as db:
+    old_users = User.objects.using(db).all()
 ```
 
-The MCP server exposes several tools for AI assistants:
-- `litestream_info` - Get system status and configuration information
-- `litestream_databases` - List all configured databases and their replica status
-- `litestream_ltx` - View available LTX (transaction log) files for a specific database
-- `litestream_restore` - Restore a database to a specific point in time
+### Automatic Read Distribution
 
-For more information about MCP integration and AI assistant setup, visit the [official documentation](https://litestream.io/reference/mcp/).
+Route reads to replicas automatically:
 
-#### litestream version
+```python
+DATABASE_ROUTERS = ['django_litestream.db.routers.LitestreamRouter']
 
-Print the version of the Litestream binary.
-
-```console
-python manage.py litestream version
+# Reads go to replicas, writes to primary - no code changes!
+users = User.objects.all()  # → VFS replica
+user.save()  # → Primary database
 ```
 
-#### litestream verify
+## Contributing
 
-This command verifies the integrity of your backed-up databases. This process is inspired by the [verify command](https://github.com/fractaledmind/litestream-ruby?tab=readme-ov-file#verification) of the `litestream-ruby` gem.
-The verification process involves the following steps:
+Contributions are welcome! Please feel free to submit a Pull Request.
 
-1. **Add Verification Data**: A new row is added to a `_litestream_verification` table in the specified database. This table is created if it does not already exist. The row contains a unique code and the current timestamp.
-2. **Wait for Replication**: The command waits for 10 seconds to allow Litestream to replicate the new row to the configured storage providers.
-3. **Restore Backup**: The latest backup is restored from the storage provider to a temporary location.
-4. **Check Verification Data**: The restored database is checked to ensure that the verification row is present. This ensures that the backup is both restorable and up-to-date.
-
-If the verification row is not found in the restored database, the command will return an error indicating that the backup data is out of sync. If the row is found, the command confirms that the backup data is in sync.
-
-Examples:
-
-```console
-python manage.py litestream verify default
-```
-
-This check ensures that the restored database file Exists, can be opened by SQLite, and has up-to-date data.
+- [GitHub Repository](https://github.com/Tobi-De/django-litestream)
+- [Issue Tracker](https://github.com/Tobi-De/django-litestream/issues)
+- [Discussions](https://github.com/Tobi-De/django-litestream/discussions)
 
 ## License
 
