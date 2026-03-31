@@ -4,11 +4,11 @@ All notable changes to this project will be documented in this file.
 
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
-## [unreleased]
+## [0.6.0] - 2026-03-31
 
 ### 🚀 Features
 
-- Vfs integration
+- Vfs integration (#9)
 
 ## [0.5.2] - 2025-11-02
 
