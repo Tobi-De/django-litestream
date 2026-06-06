@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import platform
 import sys
 from dataclasses import dataclass
 from pathlib import Path
@@ -29,15 +28,6 @@ class AppSettings:
                 Path(sys.executable).parent / "litestream",
             )
         )
-
-    @property
-    def vfs_extension_path(self) -> Path:
-        custom = self.user_settings.get("vfs_extension_path")
-        if custom:
-            return Path(custom)
-        system = platform.system().lower()
-        ext = "litestream.dylib" if system == "darwin" else "litestream.so"
-        return self.bin_path.parent / ext
 
     def litestream_settings(self) -> dict[str, object]:
         config = {}

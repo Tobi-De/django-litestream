@@ -191,6 +191,12 @@ docs = [
 name = "django-litestream-vfs"
 version = "0.5.11"
 source = { directory = "src/django_litestream_vfs" }
+dependencies = [
+    { name = "django-litestream" },
+]
+
+[package.metadata]
+requires-dist = [{ name = "django-litestream", specifier = "==0.5.11" }]
 
 [[package]]
 name = "docutils"

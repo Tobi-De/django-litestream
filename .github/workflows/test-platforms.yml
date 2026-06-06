@@ -94,13 +94,15 @@ jobs:
         uv pip install --system \
           dist/django_litestream-*-manylinux*x86_64*.whl \
           dist/django_litestream_vfs-*-manylinux*x86_64*.whl
-        ls -la $(dirname $(which litestream))/litestream.so
+        VFS_PATH="$(dirname "$(which litestream)")/litestream.so"
+        ls -la "$VFS_PATH"
         python -c "
         import sqlite3
         conn = sqlite3.connect(':memory:')
         conn.enable_load_extension(True)
-        from django_litestream.conf import app_settings
-        conn.load_extension(str(app_settings.vfs_extension_path))
+        import shutil, pathlib
+        vfs_path = pathlib.Path(shutil.which('litestream')).parent / 'litestream.so'
+        conn.load_extension(str(vfs_path))
         print('VFS extension loaded OK')
         conn.close()
         "

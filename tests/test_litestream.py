@@ -1,6 +1,5 @@
 from __future__ import annotations
 
-import platform
 import shutil
 import sqlite3
 import subprocess
@@ -19,12 +18,6 @@ from django_litestream.management.commands.litestream import (
     LITESTREAM_COMMANDS,
     generate_temp_config,
 )
-
-
-# def test_empty_dbs_not_allowed():
-#     with override_settings(LITESTREAM={}):
-#         with pytest.raises(ValueError):
-#             generate_temp_config()
 
 
 def test_generate_temp_config_user_defined_with_replica():
@@ -47,7 +40,6 @@ def test_generate_temp_config_user_defined_with_replica():
                 config = load(f, Loader=Loader)
 
             assert len(config["dbs"]) == 1
-            # Path is resolved to absolute path
             assert config["dbs"][0]["path"].endswith("db.sqlite3")
             assert config["dbs"][0]["replica"]["bucket"] == "my-bucket"
             assert config["dbs"][0]["replica"]["path"] == "custom.sqlite3"
@@ -68,14 +60,11 @@ def test_generate_temp_config_user_defined_auto_replica():
                 config = load(f, Loader=Loader)
 
             assert len(config["dbs"]) == 1
-            # Path is resolved to absolute path
             assert config["dbs"][0]["path"].endswith("db.sqlite3")
-            # Replica should be auto-generated
             assert "replica" in config["dbs"][0]
             assert config["dbs"][0]["replica"]["type"] == "s3"
             assert config["dbs"][0]["replica"]["bucket"] == "$LITESTREAM_REPLICA_BUCKET"
             assert config["dbs"][0]["replica"]["path"] == "db.sqlite3"
-            # Global credentials should be added
             assert config["access-key-id"] == "$LITESTREAM_ACCESS_KEY_ID"
             assert config["secret-access-key"] == "$LITESTREAM_SECRET_ACCESS_KEY"
 
@@ -114,7 +103,6 @@ def test_generate_temp_config_multiple_dbs():
         ],
     }
 
-    # Add second database to Django DATABASES
     with override_settings(
         LITESTREAM=litestream_config,
         DATABASES={
@@ -133,10 +121,8 @@ def test_generate_temp_config_multiple_dbs():
                 config = load(f, Loader=Loader)
 
             assert len(config["dbs"]) == 2
-            # First db should have auto-generated replica (path is resolved to absolute)
             assert config["dbs"][0]["path"].endswith("db.sqlite3")
             assert config["dbs"][0]["replica"]["bucket"] == "$LITESTREAM_REPLICA_BUCKET"
-            # Second db should use user-defined replica (path is resolved to absolute)
             assert config["dbs"][1]["path"].endswith("other.sqlite3")
             assert config["dbs"][1]["replica"]["bucket"] == "other-bucket"
 
@@ -195,8 +181,6 @@ def test_parse_daemon_args_basic():
     """Test daemon args parsing with basic options."""
     cmd = Command()
 
-    from unittest.mock import patch
-
     with patch.object(cmd, "stdout"):
         args = cmd.parse_daemon_args(
             "info",
@@ -249,33 +233,9 @@ def test_bin_path_default():
     assert app_settings.bin_path == expected
 
 
-def test_vfs_extension_path_default_linux():
-    """Test vfs_extension_path defaults to alongside the main binary on Linux."""
-    with patch.object(platform, "system", return_value="Linux"):
-        from django_litestream.conf import AppSettings
-        expected = Path(sys.executable).parent / "litestream.so"
-        assert AppSettings().vfs_extension_path == expected
-
-
-def test_vfs_extension_path_default_macos():
-    """Test vfs_extension_path defaults with .dylib on macOS."""
-    with patch.object(platform, "system", return_value="Darwin"):
-        from django_litestream.conf import AppSettings
-        expected = Path(sys.executable).parent / "litestream.dylib"
-        assert AppSettings().vfs_extension_path == expected
-
-
-def test_vfs_extension_path_custom():
-    """Test that custom vfs_extension_path overrides the default."""
-    with override_settings(LITESTREAM={"vfs_extension_path": "/opt/vfs/litestream.so"}):
-        from django_litestream.conf import AppSettings
-        assert AppSettings().vfs_extension_path == Path("/opt/vfs/litestream.so")
-
-
 def test_handle_missing_binary(tmp_path):
     """Test handle() raises FileNotFoundError when binary doesn't exist."""
     cmd = Command()
-    # Point to a non-existent binary
     with override_settings(LITESTREAM={"bin_path": str(tmp_path / "nonexistent")}):
         import pytest
         with pytest.raises(FileNotFoundError, match="Litestream binary not found"):
@@ -289,15 +249,3 @@ def test_litestream_command_coverage():
         "status", "sync", "version", "wal", "reset",
     }
     assert set(LITESTREAM_COMMANDS.keys()) == expected
-
-
-def test_ensure_vfs_loaded_missing(tmp_path):
-    """Test ensure_vfs_loaded raises when extension is missing."""
-    from django_litestream import vfs as vfs_module
-    vfs_module._vfs_loaded = False
-
-    fake_path = str(tmp_path / "nonexistent.so")
-    with override_settings(LITESTREAM={"vfs_extension_path": fake_path}):
-        import pytest
-        with pytest.raises(FileNotFoundError, match="Litestream VFS extension not found"):
-            vfs_module.ensure_vfs_loaded()

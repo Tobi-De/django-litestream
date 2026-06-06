@@ -6,7 +6,8 @@ from __future__ import annotations
 
 import sqlite3
 import threading
-from django_litestream.conf import app_settings
+
+from django_litestream_vfs.conf import vfs_settings
 
 _vfs_loaded = False
 _vfs_load_lock = threading.Lock()
@@ -36,7 +37,7 @@ def ensure_vfs_loaded() -> None:
         if _vfs_loaded:
             return
 
-        vfs_path = app_settings.vfs_extension_path
+        vfs_path = vfs_settings.vfs_extension_path
 
         if not vfs_path.exists():
             raise FileNotFoundError(
