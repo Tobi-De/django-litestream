@@ -11,6 +11,7 @@ from yaml import Loader
 
 from django_litestream.management.commands.litestream import (
     Command,
+    DAEMON_COMMANDS,
     generate_temp_config,
 )
 
@@ -171,3 +172,67 @@ def test_verify_fails(tmp_path):
     ):
         exit_code, msg = Command().verify(sqlite_db, config=temp_config)
         assert exit_code == 1
+
+
+def test_daemon_commands_defined():
+    """Test that all daemon control commands are properly defined."""
+    expected = {"info", "list", "register", "unregister", "start", "stop"}
+    assert set(DAEMON_COMMANDS.keys()) == expected
+
+    for cmd in DAEMON_COMMANDS:
+        assert "description" in DAEMON_COMMANDS[cmd]
+        assert "arguments" in DAEMON_COMMANDS[cmd]
+        for arg in DAEMON_COMMANDS[cmd]["arguments"]:
+            assert "name" in arg
+
+
+def test_parse_daemon_args_basic():
+    """Test daemon args parsing with basic options."""
+    cmd = Command()
+
+    from unittest.mock import patch
+
+    with patch.object(cmd, "stdout"):
+        args = cmd.parse_daemon_args(
+            "info",
+            {"json": True, "timeout": 30, "socket": "/tmp/litestream.sock"},
+        )
+        assert args[0] == "info"
+        assert "-json" in args
+        assert "-timeout" in args and "30" in args
+        assert "-socket" in args and "/tmp/litestream.sock" in args
+
+
+def test_parse_daemon_args_with_db_path():
+    """Test daemon args parsing with a db_path positional."""
+    cmd = Command()
+
+    with patch("django_litestream.management.commands.litestream.settings") as mock_settings:
+        mock_settings.DATABASES = {}
+        with patch.object(cmd, "stdout"):
+            args = cmd.parse_daemon_args(
+                "register",
+                {"db_path": "db.sqlite3", "replica": "s3://bucket/db.sqlite3"},
+            )
+            assert "register" in args
+            assert "db.sqlite3" in args
+            assert "-replica" in args
+            assert "s3://bucket/db.sqlite3" in args
+
+
+def test_parse_daemon_args_bool_flags_omitted_when_false():
+    """Test that boolean flags are omitted when False."""
+    cmd = Command()
+
+    with patch.object(cmd, "stdout"):
+        args = cmd.parse_daemon_args("info", {"json": False})
+        assert "-json" not in args
+
+
+def test_parse_daemon_args_none_omitted():
+    """Test that None values are omitted from args."""
+    cmd = Command()
+
+    with patch.object(cmd, "stdout"):
+        args = cmd.parse_daemon_args("info", {"socket": None})
+        assert "-socket" not in args

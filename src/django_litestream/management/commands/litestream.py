@@ -27,8 +27,8 @@ if TYPE_CHECKING:
     from argparse import ArgumentParser
 
 
-LITESTREAM_VERSION = "0.5.10"
-VFS_VERSION = "0.5.10"
+LITESTREAM_VERSION = "0.5.11"
+VFS_VERSION = "0.5.11"
 UPSTREAM_REPO = "https://github.com/benbjohnson/litestream"
 
 LITESTREAM_COMMANDS = {
@@ -177,6 +177,206 @@ LITESTREAM_COMMANDS = {
         ],
     },
     "version": {"description": "Prints the binary version", "arguments": []},
+    "wal": {
+        "description": "(Deprecated) List available WAL files for a database. Use ltx instead.",
+        "arguments": [
+            {
+                "name": "db_path",
+                "help": "Path to the SQLite database file or replica URL",
+            },
+            {
+                "name": "-replica",
+                "help": "Optional, filters by replica.",
+                "required": False,
+            },
+            {
+                "name": "-generation",
+                "help": "Optional, filter by a specific generation.",
+                "required": False,
+            },
+        ],
+    },
+    "reset": {
+        "description": "Clears local Litestream state for a database, forcing a fresh snapshot",
+        "arguments": [
+            {
+                "name": "db_path",
+                "help": "Path to the SQLite database file",
+            },
+            {
+                "name": "-dry-run",
+                "action": "store_true",
+                "help": "Print files that would be removed without deleting anything.",
+                "required": False,
+            },
+        ],
+    },
+    "mcp": {
+        "description": "Starts a Litestream MCP server for AI assistant integration",
+        "arguments": [],
+    },
+}
+
+DAEMON_COMMANDS = {
+    "info": {
+        "description": "Shows daemon version, PID, and uptime (requires running daemon)",
+        "arguments": [
+            {
+                "name": "-socket",
+                "help": "Path to the control socket. Defaults to /var/run/litestream.sock.",
+                "required": False,
+            },
+            {
+                "name": "-timeout",
+                "type": int,
+                "help": "Maximum time to wait in seconds. Defaults to 10.",
+                "required": False,
+            },
+            {
+                "name": "-json",
+                "action": "store_true",
+                "help": "Output raw JSON instead of human-readable text.",
+                "required": False,
+            },
+        ],
+    },
+    "list": {
+        "description": "Lists databases managed by the daemon (requires running daemon)",
+        "arguments": [
+            {
+                "name": "-socket",
+                "help": "Path to the control socket. Defaults to /var/run/litestream.sock.",
+                "required": False,
+            },
+            {
+                "name": "-timeout",
+                "type": int,
+                "help": "Maximum time to wait in seconds. Defaults to 10.",
+                "required": False,
+            },
+            {
+                "name": "-json",
+                "action": "store_true",
+                "help": "Output raw JSON instead of human-readable text.",
+                "required": False,
+            },
+        ],
+    },
+    "register": {
+        "description": "Dynamically adds a database to the daemon (requires running daemon)",
+        "arguments": [
+            {
+                "name": "db_path",
+                "help": "Path to the SQLite database file or django database alias",
+            },
+            {
+                "name": "-replica",
+                "help": "Replica destination URL (e.g., s3://bucket/prefix). Required.",
+                "required": True,
+            },
+            {
+                "name": "-socket",
+                "help": "Path to the control socket. Defaults to /var/run/litestream.sock.",
+                "required": False,
+            },
+            {
+                "name": "-timeout",
+                "type": int,
+                "help": "Maximum time to wait in seconds. Defaults to 30.",
+                "required": False,
+            },
+            {
+                "name": "-json",
+                "action": "store_true",
+                "help": "Output raw JSON instead of human-readable text.",
+                "required": False,
+            },
+        ],
+    },
+    "unregister": {
+        "description": "Removes a database from the daemon (requires running daemon)",
+        "arguments": [
+            {
+                "name": "db_path",
+                "help": "Path to the SQLite database file or django database alias",
+            },
+            {
+                "name": "-socket",
+                "help": "Path to the control socket. Defaults to /var/run/litestream.sock.",
+                "required": False,
+            },
+            {
+                "name": "-timeout",
+                "type": int,
+                "help": "Maximum time to wait in seconds. Defaults to 30.",
+                "required": False,
+            },
+            {
+                "name": "-dry-run",
+                "action": "store_true",
+                "help": "Preview what would be unregistered without changing the daemon.",
+                "required": False,
+            },
+            {
+                "name": "-json",
+                "action": "store_true",
+                "help": "Output raw JSON instead of human-readable text.",
+                "required": False,
+            },
+        ],
+    },
+    "start": {
+        "description": "Resumes replication for a stopped database (requires running daemon)",
+        "arguments": [
+            {
+                "name": "db_path",
+                "help": "Path to the SQLite database file or django database alias",
+            },
+            {
+                "name": "-socket",
+                "help": "Path to the control socket. Defaults to /var/run/litestream.sock.",
+                "required": False,
+            },
+            {
+                "name": "-timeout",
+                "type": int,
+                "help": "Maximum time to wait in seconds. Defaults to 30.",
+                "required": False,
+            },
+            {
+                "name": "-json",
+                "action": "store_true",
+                "help": "Output raw JSON instead of human-readable text.",
+                "required": False,
+            },
+        ],
+    },
+    "stop": {
+        "description": "Pauses replication for a database (requires running daemon)",
+        "arguments": [
+            {
+                "name": "db_path",
+                "help": "Path to the SQLite database file or django database alias",
+            },
+            {
+                "name": "-socket",
+                "help": "Path to the control socket. Defaults to /var/run/litestream.sock.",
+                "required": False,
+            },
+            {
+                "name": "-timeout",
+                "type": int,
+                "help": "Maximum time to wait in seconds. Defaults to 30.",
+                "required": False,
+            },
+            {
+                "name": "-json",
+                "action": "store_true",
+                "help": "Output raw JSON instead of human-readable text.",
+                "required": False,
+            },
+        ],
+    },
 }
 
 
@@ -208,6 +408,17 @@ class Command(BaseCommand):
                 help="Disables environment variable expansion in configuration file.",
                 required=False,
             )
+
+        for daemon_cmd, details in DAEMON_COMMANDS.items():
+            parser = subcommands.add_parser(
+                daemon_cmd,
+                help=details["description"],
+                description=details["description"],
+            )
+            for args in details["arguments"]:
+                copied_args = args.copy()
+                name = copied_args.pop("name")
+                parser.add_argument(name, **copied_args)
 
         verify_cmd = subcommands.add_parser(
             name="verify",
@@ -270,6 +481,17 @@ class Command(BaseCommand):
                 exit(1)
         elif not options["subcommand"]:
             self.print_help("manage", "litestream")
+        elif options["subcommand"] in DAEMON_COMMANDS:
+            ls_args = self.parse_daemon_args(options["subcommand"], options)
+            if options["verbosity"] > 2:
+                self.stdout.write(f"Options: {options}")
+            if options["verbosity"] > 1:
+                self.stdout.write(f"Litestream bin: {app_settings.bin_path}")
+                self.stdout.write(f"Litestream args: {ls_args}")
+            try:
+                subprocess.run([app_settings.bin_path, *ls_args], check=False)
+            except KeyboardInterrupt:
+                self.stdout.write("Litestream command interrupted")
         else:
             with generate_temp_config() as config:
                 options["config"] = Path(config)
@@ -290,6 +512,36 @@ class Command(BaseCommand):
         optionals = ["-config", str(options["config"])]
 
         for argument in LITESTREAM_COMMANDS[subcommand]["arguments"]:
+            arg_name = argument["name"]
+            dest = arg_name.strip("-").replace("-", "_")
+            if dest not in options:
+                continue
+            value = options[dest]
+            is_bool = isinstance(value, bool)
+            if is_bool and not value:
+                continue
+            if value is None:
+                continue
+            if dest == "db_path":
+                value = _db_location_from_alias(value)
+            if isinstance(value, list):
+                value = " ".join(value).strip()
+
+            if arg_name.startswith("-"):
+                if is_bool:
+                    optionals.append(arg_name)
+                else:
+                    optionals.extend([arg_name, str(value)])
+            else:
+                positionals.append(str(value))
+        return [subcommand, *list(chain(optionals)), *positionals]
+
+    def parse_daemon_args(self, subcommand: str, options: dict) -> list[str]:
+        """Format CLI arguments for daemon control IPC commands (no config file needed)."""
+        positionals = []
+        optionals = []
+
+        for argument in DAEMON_COMMANDS[subcommand]["arguments"]:
             arg_name = argument["name"]
             dest = arg_name.strip("-").replace("-", "_")
             if dest not in options:
