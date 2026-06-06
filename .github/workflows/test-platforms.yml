@@ -6,7 +6,7 @@ on:
       - 'scripts/build_binaries.py'
       - 'src/django_litestream/**'
       - 'pyproject.toml'
-      - 'src/django_litestream_vfs/**'
+      - 'django_litestream_vfs/**'
       - '.github/workflows/test-platforms.yml'
   workflow_dispatch:
 

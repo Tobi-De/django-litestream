@@ -14,20 +14,6 @@ _vfs_load_lock = threading.Lock()
 
 
 def ensure_vfs_loaded() -> None:
-    """
-    Ensure the Litestream VFS extension is loaded exactly once per process.
-
-    Thread-safe via double-checked locking.
-
-    The VFS extension registers a global VFS handler in the SQLite library
-    for this process. Once registered, all connections in this process can
-    use vfs=litestream without reloading.
-
-    Raises:
-        FileNotFoundError: If the VFS extension file is not found at the
-            configured or default path.
-        RuntimeError: If the extension fails to load.
-    """
     global _vfs_loaded
 
     if _vfs_loaded:

@@ -61,7 +61,7 @@ jobs:
         sed -i 's/version = "[^"]*"/version = "'"$NEW_VERSION"'"/' pyproject.toml
         sed -i 's/current_version = "[^"]*"/current_version = "'"$NEW_VERSION"'"/' pyproject.toml
         sed -i 's/django-litestream-vfs==[^"]*/django-litestream-vfs=='"$NEW_VERSION"'"/' pyproject.toml
-        sed -i 's/version = "[^"]*"/version = "'"$NEW_VERSION"'"/' src/django_litestream_vfs/pyproject.toml
+        sed -i 's/version = "[^"]*"/version = "'"$NEW_VERSION"'"/' django_litestream_vfs/pyproject.toml
 
     - name: Create pull request
       if: steps.check.outputs.needs_update == 'true'
