@@ -4,6 +4,19 @@ All notable changes to this project will be documented in this file.
 
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.11] - 2026-06-06
+
+### 🚀 Features
+
+- Update to Litestream v0.5.11 and add missing upstream commands
+- Install vfs via extra
+
+### ⚙️ Miscellaneous Tasks
+
+- [**breaking**] Rebundle as platform-specific wheels, split VFS into standalone package
+- Directories layout cleanup
+- Directories layout cleanup
+
 ## [0.6.0] - 2026-03-31
 
 ### 🚀 Features
