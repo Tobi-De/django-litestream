@@ -1,17 +1,22 @@
 from __future__ import annotations
 
+import platform
 import shutil
 import sqlite3
 import subprocess
+import sys
+from pathlib import Path
 from unittest.mock import patch
 
 from django.test import override_settings
 from yaml import load
 from yaml import Loader
 
+from django_litestream.conf import app_settings
 from django_litestream.management.commands.litestream import (
     Command,
     DAEMON_COMMANDS,
+    LITESTREAM_COMMANDS,
     generate_temp_config,
 )
 
@@ -236,3 +241,63 @@ def test_parse_daemon_args_none_omitted():
     with patch.object(cmd, "stdout"):
         args = cmd.parse_daemon_args("info", {"socket": None})
         assert "-socket" not in args
+
+
+def test_bin_path_default():
+    """Test that bin_path defaults to <venv>/bin/litestream."""
+    expected = Path(sys.executable).parent / "litestream"
+    assert app_settings.bin_path == expected
+
+
+def test_vfs_extension_path_default_linux():
+    """Test vfs_extension_path defaults to alongside the main binary on Linux."""
+    with patch.object(platform, "system", return_value="Linux"):
+        from django_litestream.conf import AppSettings
+        expected = Path(sys.executable).parent / "litestream.so"
+        assert AppSettings().vfs_extension_path == expected
+
+
+def test_vfs_extension_path_default_macos():
+    """Test vfs_extension_path defaults with .dylib on macOS."""
+    with patch.object(platform, "system", return_value="Darwin"):
+        from django_litestream.conf import AppSettings
+        expected = Path(sys.executable).parent / "litestream.dylib"
+        assert AppSettings().vfs_extension_path == expected
+
+
+def test_vfs_extension_path_custom():
+    """Test that custom vfs_extension_path overrides the default."""
+    with override_settings(LITESTREAM={"vfs_extension_path": "/opt/vfs/litestream.so"}):
+        from django_litestream.conf import AppSettings
+        assert AppSettings().vfs_extension_path == Path("/opt/vfs/litestream.so")
+
+
+def test_handle_missing_binary(tmp_path):
+    """Test handle() raises FileNotFoundError when binary doesn't exist."""
+    cmd = Command()
+    # Point to a non-existent binary
+    with override_settings(LITESTREAM={"bin_path": str(tmp_path / "nonexistent")}):
+        import pytest
+        with pytest.raises(FileNotFoundError, match="Litestream binary not found"):
+            cmd.handle(subcommand="config")
+
+
+def test_litestream_command_coverage():
+    """Test that LITESTREAM_COMMANDS includes all expected upstream commands."""
+    expected = {
+        "databases", "ltx", "mcp", "replicate", "restore",
+        "status", "sync", "version", "wal", "reset",
+    }
+    assert set(LITESTREAM_COMMANDS.keys()) == expected
+
+
+def test_ensure_vfs_loaded_missing(tmp_path):
+    """Test ensure_vfs_loaded raises when extension is missing."""
+    from django_litestream import vfs as vfs_module
+    vfs_module._vfs_loaded = False
+
+    fake_path = str(tmp_path / "nonexistent.so")
+    with override_settings(LITESTREAM={"vfs_extension_path": fake_path}):
+        import pytest
+        with pytest.raises(FileNotFoundError, match="Litestream VFS extension not found"):
+            vfs_module.ensure_vfs_loaded()

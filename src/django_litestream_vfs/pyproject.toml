@@ -1,0 +1,13 @@
+[build-system]
+build-backend = "uv_build"
+requires = [ "uv-build>=0.9.7,<0.10" ]
+
+[project]
+name = "django-litestream-vfs"
+version = "0.5.11"
+description = "Litestream VFS SQLite extension for django-litestream read-replica support"
+readme = "README.md"
+license = { file = "LICENSE.txt" }
+requires-python = ">=3.12"
+
+dependencies = []

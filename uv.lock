@@ -145,11 +145,16 @@ wheels = [
 
 [[package]]
 name = "django-litestream"
-version = "0.6.0"
+version = "0.5.11"
 source = { editable = "." }
 dependencies = [
     { name = "django" },
     { name = "pyyaml" },
+]
+
+[package.optional-dependencies]
+vfs = [
+    { name = "django-litestream-vfs" },
 ]
 
 [package.dev-dependencies]
@@ -167,8 +172,10 @@ docs = [
 [package.metadata]
 requires-dist = [
     { name = "django", specifier = ">=4.2" },
+    { name = "django-litestream-vfs", marker = "extra == 'vfs'", directory = "src/django_litestream_vfs" },
     { name = "pyyaml" },
 ]
+provides-extras = ["vfs"]
 
 [package.metadata.requires-dev]
 dev = [{ name = "pytest" }]
@@ -179,6 +186,11 @@ docs = [
     { name = "sphinx-copybutton", specifier = ">=0.5.2" },
     { name = "sphinx-design", specifier = ">=0.6.1" },
 ]
+
+[[package]]
+name = "django-litestream-vfs"
+version = "0.5.11"
+source = { directory = "src/django_litestream_vfs" }
 
 [[package]]
 name = "docutils"

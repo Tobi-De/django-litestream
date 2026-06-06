@@ -1,0 +1,91 @@
+name: Check for new Litestream releases
+
+on:
+  schedule:
+    - cron: '0 8 * * 1'  # every Monday at 8am UTC
+  workflow_dispatch:
+
+jobs:
+  check-update:
+    runs-on: ubuntu-latest
+    permissions:
+      contents: write
+      pull-requests: write
+
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Get latest Litestream release
+      id: upstream
+      run: |
+        LATEST=$(curl -sS https://api.github.com/repos/benbjohnson/litestream/releases/latest | jq -r .tag_name)
+        LATEST="${LATEST#v}"
+        echo "version=$LATEST" >> $GITHUB_OUTPUT
+
+    - name: Get current bundled version
+      id: current
+      run: |
+        CURRENT=$(grep -oP 'LITESTREAM_VERSION\s*=\s*"\K[^"]+' src/django_litestream/management/commands/litestream.py)
+        echo "version=$CURRENT" >> $GITHUB_OUTPUT
+
+    - name: Compare versions
+      id: check
+      run: |
+        echo "upstream=${{ steps.upstream.outputs.version }}"
+        echo "current=${{ steps.current.outputs.version }}"
+        if [ "${{ steps.upstream.outputs.version }}" != "${{ steps.current.outputs.version }}" ]; then
+          echo "needs_update=true" >> $GITHUB_OUTPUT
+          echo "::notice::New Litestream release v${{ steps.upstream.outputs.version }} available (current: v${{ steps.current.outputs.version }})"
+        else
+          echo "needs_update=false" >> $GITHUB_OUTPUT
+          echo "::notice::Litestream is up to date (v${{ steps.current.outputs.version }})"
+        fi
+
+    - name: Get changelog
+      if: steps.check.outputs.needs_update == 'true'
+      id: changelog
+      run: |
+        BODY=$(curl -sS https://api.github.com/repos/benbjohnson/litestream/releases/latest | jq -r .body)
+        {
+          echo "changelog<<EOF"
+          echo "$BODY"
+          echo "EOF"
+        } >> $GITHUB_OUTPUT
+
+    - name: Update version constants
+      if: steps.check.outputs.needs_update == 'true'
+      run: |
+        NEW_VERSION="${{ steps.upstream.outputs.version }}"
+        find src -name 'litestream.py' -exec sed -i \
+          's/LITESTREAM_VERSION = "[^"]*"/LITESTREAM_VERSION = "'"$NEW_VERSION"'"/' {} \;
+        sed -i 's/version = "[^"]*"/version = "'"$NEW_VERSION"'"/' pyproject.toml
+        sed -i 's/current_version = "[^"]*"/current_version = "'"$NEW_VERSION"'"/' pyproject.toml
+        sed -i 's/django-litestream-vfs==[^"]*/django-litestream-vfs=='"$NEW_VERSION"'"/' pyproject.toml
+        sed -i 's/version = "[^"]*"/version = "'"$NEW_VERSION"'"/' src/django_litestream_vfs/pyproject.toml
+
+    - name: Create pull request
+      if: steps.check.outputs.needs_update == 'true'
+      uses: peter-evans/create-pull-request@v7
+      with:
+        branch: update-litestream-v${{ steps.upstream.outputs.version }}
+        title: "Update to Litestream v${{ steps.upstream.outputs.version }}"
+        body: |
+          Litestream [v${{ steps.upstream.outputs.version }}](https://github.com/benbjohnson/litestream/releases/tag/v${{ steps.upstream.outputs.version }}) has been released.
+
+          **Upstream changelog:**
+
+          ${{ steps.changelog.outputs.changelog }}
+
+          ---
+
+          **Manual review checklist before merging:**
+
+          - [ ] Check for new/removed CLI commands or changed arguments (review [litestream.io/reference](https://litestream.io/reference/))
+          - [ ] Update `LITESTREAM_COMMANDS` and `DAEMON_COMMANDS` in `litestream.py` if needed
+          - [ ] Verify download URLs still work (check `scripts/build_binaries.py`)
+          - [ ] Test locally: `python scripts/build_binaries.py` then run the test suite
+
+          *This PR was auto-generated. Please review carefully before merging.*
+        draft: true
+        commit-message: "Update to Litestream v${{ steps.upstream.outputs.version }}"
+        labels: dependencies, automated

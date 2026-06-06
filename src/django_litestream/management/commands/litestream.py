@@ -1,5 +1,4 @@
 from __future__ import annotations
-import platform
 
 import datetime as dt
 import secrets
@@ -17,10 +16,6 @@ from django.core.management import BaseCommand
 import yaml
 import sys
 
-import io
-import tarfile
-import urllib.request
-import zipfile
 from django_litestream.conf import app_settings
 
 if TYPE_CHECKING:
@@ -28,8 +23,6 @@ if TYPE_CHECKING:
 
 
 LITESTREAM_VERSION = "0.5.11"
-VFS_VERSION = "0.5.11"
-UPSTREAM_REPO = "https://github.com/benbjohnson/litestream"
 
 LITESTREAM_COMMANDS = {
     "databases": {
@@ -430,21 +423,14 @@ class Command(BaseCommand):
             help="Path to the SQLite database file or django database alias",
         )
 
-        subcommands.add_parser(
-            name="vfs-install",
-            help="Download and install the Litestream VFS extension",
-            description="Download and install the Litestream VFS extension for read-only replica access",
-        )
-
     def handle(self, *_, **options) -> None:
-        # Check if litestream binary exists, download if not
         if not app_settings.bin_path.exists():
-            self.stdout.write(
-                self.style.WARNING(
-                    f"Litestream binary not found at {app_settings.bin_path}. Downloading..."
-                )
+            raise FileNotFoundError(
+                f"Litestream binary not found at {app_settings.bin_path}.\n"
+                "When installed from a platform-specific wheel, the binary is bundled automatically.\n"
+                "Otherwise, set LITESTREAM['bin_path'] to a custom litestream binary path\n"
+                "or download it from https://github.com/benbjohnson/litestream/releases"
             )
-            download_binary()
 
         if options["subcommand"] == "config":
             with generate_temp_config() as config:
@@ -459,26 +445,6 @@ class Command(BaseCommand):
             style = self.style.ERROR if exit_code else self.style.SUCCESS
             self.stdout.write(style(msg))
             exit(exit_code)
-        elif options["subcommand"] == "vfs-install":
-            if app_settings.vfs_extension_path.exists():
-                self.stdout.write(
-                    self.style.WARNING(
-                        f"VFS extension already exists at {app_settings.vfs_extension_path}"
-                    )
-                )
-                self.stdout.write("Re-downloading...")
-            try:
-                download_vfs_extension()
-                self.stdout.write(
-                    self.style.SUCCESS(
-                        f"Successfully installed VFS extension to {app_settings.vfs_extension_path}"
-                    )
-                )
-            except Exception as e:
-                self.stdout.write(
-                    self.style.ERROR(f"Failed to install VFS extension: {e}")
-                )
-                exit(1)
         elif not options["subcommand"]:
             self.print_help("manage", "litestream")
         elif options["subcommand"] in DAEMON_COMMANDS:
@@ -668,147 +634,3 @@ def generate_temp_config():
         yield config_path
     finally:
         Path(config_path).unlink(missing_ok=True)
-
-
-def _build_litestream_download_url(basename: str, version: str) -> str:
-    system = platform.system().lower()
-    machine = platform.machine().lower()
-
-    # Normalize machine architecture
-    if machine in ("aarch64", "arm64"):
-        arch = "arm64"
-    elif machine in ("x86_64", "amd64"):
-        arch = "x86_64"
-    elif machine in ("armv7l", "armv7"):
-        arch = "armv7"
-    elif machine in ("armv6l", "armv6"):
-        arch = "armv6"
-    else:
-        raise ValueError(f"Unsupported architecture: {machine}")
-
-    if basename == "litestream-vfs" and arch not in ("x86_64", "arm64"):
-        raise ValueError(
-            f"Unsupported architecture for VFS: {machine}. "
-            "VFS extension only supports x86_64 and arm64."
-        )
-
-    if basename == "litestream-vfs" and system == "windows":
-        raise ValueError(
-            f"Unsupported operating system for VFS: {system}. Windows is not supported."
-        )
-
-    if system not in ("linux", "darwin", "windows"):
-        raise ValueError(f"Unsupported operating system: {system}")
-
-    if system in ("darwin", "windows") and arch not in ("arm64", "x86_64"):
-        raise ValueError(
-            f"Unsupported {system} architecture: {arch}. "
-            f"{system.title()} only supports x86_64 and arm64."
-        )
-
-    # VFS uses different naming convention
-    if basename == "litestream-vfs":
-        # VFS: litestream-vfs-v{version}-{system}-{amd64|arm64}.tar.gz
-        vfs_arch = "amd64" if arch == "x86_64" else arch
-        filename = f"{basename}-v{version}-{system}-{vfs_arch}.tar.gz"
-    else:
-        # Regular litestream: litestream-{version}-{system}-{arch}.{tar.gz|zip}
-        platform_tag = f"{system}-{arch}"
-        if system == "windows":
-            filename = f"{basename}-{version}-{platform_tag}.zip"
-        else:
-            filename = f"{basename}-{version}-{platform_tag}.tar.gz"
-
-    return f"{UPSTREAM_REPO}/releases/download/v{version}/{filename}"
-
-
-def download_binary():
-    download_url = _build_litestream_download_url("litestream", LITESTREAM_VERSION)
-    system = platform.system().lower()
-
-    print(f"Downloading litestream {LITESTREAM_VERSION}...")
-    print(f"URL: {download_url}")
-
-    # Download the binary
-    with urllib.request.urlopen(download_url) as response:
-        data = response.read()
-
-    install_path = app_settings.bin_path
-    install_path.parent.mkdir(parents=True, exist_ok=True)
-
-    # Extract the binary from archive
-    if system == "windows":
-        # Windows zip file
-        with zipfile.ZipFile(io.BytesIO(data)) as zf:
-            # Find the litestream executable in the zip
-            for member in zf.namelist():
-                if member.endswith("litestream.exe") or member.endswith("litestream"):
-                    with zf.open(member) as source:
-                        with open(install_path, "wb") as target:
-                            target.write(source.read())
-                    break
-    else:
-        # Linux/macOS tar.gz file
-        with tarfile.open(fileobj=io.BytesIO(data), mode="r:gz") as tf:
-            # Find the litestream executable in the tarball
-            for member in tf.getmembers():
-                if member.name.endswith("litestream") and member.isfile():
-                    with tf.extractfile(member) as source:
-                        with open(install_path, "wb") as target:
-                            target.write(source.read())
-                    break
-
-    # Make executable on Unix systems
-    if system != "windows":
-        install_path.chmod(0o755)
-
-    print(f"Litestream binary installed to: {install_path}")
-    return install_path
-
-
-def download_vfs_extension():
-    download_url = _build_litestream_download_url("litestream-vfs", VFS_VERSION)
-    system = platform.system().lower()
-
-    print(f"Downloading Litestream VFS extension {VFS_VERSION}...")
-    print(f"URL: {download_url}")
-
-    # Download the extension archive
-    try:
-        with urllib.request.urlopen(download_url) as response:
-            data = response.read()
-    except Exception as e:
-        raise RuntimeError(
-            f"Failed to download VFS extension from {download_url}. Error: {e}"
-        ) from e
-
-    install_path = app_settings.vfs_extension_path
-    install_path.parent.mkdir(parents=True, exist_ok=True)
-
-    # The VFS extension file is just named "litestream" not "litestream-vfs"
-    extension_name = "litestream.dylib" if system == "darwin" else "litestream.so"
-
-    try:
-        with tarfile.open(fileobj=io.BytesIO(data), mode="r:gz") as tf:
-            # Find the VFS extension file in the tarball
-            for member in tf.getmembers():
-                if member.name.endswith(extension_name) and member.isfile():
-                    with tf.extractfile(member) as source:
-                        with open(install_path, "wb") as target:
-                            target.write(source.read())
-                    break
-            else:
-                raise RuntimeError(
-                    f"Could not find {extension_name} in the downloaded archive"
-                )
-    except Exception as e:
-        raise RuntimeError(
-            f"Failed to extract VFS extension from archive. Error: {e}"
-        ) from e
-
-    # Make executable on Unix systems
-    if system != "windows":
-        install_path.chmod(0o755)
-
-    print(f"Litestream VFS extension installed to: {install_path}")
-    return install_path

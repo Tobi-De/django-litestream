@@ -6,7 +6,7 @@ on:
       - 'v*'
 
 jobs:
-  build:
+  build-wrapper:
     runs-on: ubuntu-latest
     steps:
     - uses: actions/checkout@v4
@@ -19,29 +19,60 @@ jobs:
     - name: Install uv
       uses: astral-sh/setup-uv@v2
 
-    - name: Build package
+    - name: Build pure Python wheel + sdist
       run: uv build
 
-    - name: Upload build artifacts
+    - name: Upload wrapper artifacts
       uses: actions/upload-artifact@v4
       with:
-        name: dist
+        name: dist-wrapper
+        path: dist/
+
+  build-binaries:
+    runs-on: ubuntu-latest
+    steps:
+    - uses: actions/checkout@v4
+
+    - name: Set up Python
+      uses: actions/setup-python@v4
+      with:
+        python-version: '3.12'
+
+    - name: Install uv
+      uses: astral-sh/setup-uv@v2
+
+    - name: Build pure wheel (prerequisite)
+      run: uv build
+
+    - name: Build platform-specific binary wheels
+      run: python scripts/build_binaries.py
+
+    - name: Upload binary artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: dist-binaries
         path: dist/
 
   publish:
-    needs: build
+    needs: [build-wrapper, build-binaries]
     runs-on: ubuntu-latest
     environment:
       name: pypi
       url: https://pypi.org/p/django-litestream/
     permissions:
-      id-token: write  # IMPORTANT: this permission is mandatory for trusted publishing
+      id-token: write
 
     steps:
-    - name: Download build artifacts
+    - name: Download wrapper artifacts
       uses: actions/download-artifact@v4
       with:
-        name: dist
+        name: dist-wrapper
+        path: dist/
+
+    - name: Download binary artifacts
+      uses: actions/download-artifact@v4
+      with:
+        name: dist-binaries
         path: dist/
 
     - name: Publish to PyPI

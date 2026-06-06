@@ -14,6 +14,10 @@ _default:
     just --fmt --unstable
     uvx prek run -a
 
+# Build platform-specific binary wheels (run 'uv build' first)
+build-bin:
+    uv build && python scripts/build_binaries.py
+
 @dj *ARGS:
     cd demo && uv run python manage.py {{ ARGS }}
 
