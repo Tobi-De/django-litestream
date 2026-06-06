@@ -31,7 +31,7 @@ django-litestream integrates [Litestream](https://litestream.io), the SQLite rep
 
 ## Installation
 
-The Litestream binary is bundled in platform-specific wheels and installed automatically alongside the Python wrapper. Supported platforms: Linux (x86_64, arm64, armv7, armv6) and macOS (x86_64, arm64).
+The Litestream binary is bundled in platform-specific wheels and installed automatically alongside the Python wrapper. Supported platforms: Linux (x86_64, arm64) and macOS (x86_64, arm64).
 
 ```console
 pip install django-litestream
