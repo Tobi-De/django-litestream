@@ -4,7 +4,7 @@ requires = [ "uv-build>=0.9.7,<0.10" ]
 
 [project]
 name = "django-litestream-vfs"
-version = "0.5.11.post4"
+version = "0.5.11.post5"
 description = "Litestream VFS SQLite extension for django-litestream read-replica support"
 license = "MIT"
 requires-python = ">=3.12"
