@@ -62,7 +62,6 @@ class TestEnsureVfsLoaded:
         from django_litestream_vfs import loader
 
         loader._vfs_loaded = False
-
         fake_path = str(tmp_path / "nonexistent.so")
         with override_settings(LITESTREAM={"vfs_extension_path": fake_path}):
             with pytest.raises(
@@ -70,59 +69,87 @@ class TestEnsureVfsLoaded:
             ):
                 loader.ensure_vfs_loaded()
 
+    def test_loads_via_ctypes_auto_extension(self, tmp_path):
+        from django_litestream_vfs import loader
+
+        loader._vfs_loaded = False
+        fake_so = tmp_path / "litestream.so"
+        fake_so.write_bytes(b"\x7fELF")
+
+        mock_sqlite = MagicMock()
+        mock_sqlite.sqlite3_auto_extension.return_value = 0
+        mock_vfs = MagicMock()
+
+        with override_settings(LITESTREAM={"vfs_extension_path": str(fake_so)}):
+            with patch(
+                "ctypes.util.find_library", return_value="/usr/lib/libsqlite3.so"
+            ), patch("ctypes.CDLL", side_effect=[mock_sqlite, mock_vfs]), patch(
+                "ctypes.c_void_p.in_dll", return_value=12345
+            ):
+                loader.ensure_vfs_loaded()
+        assert loader._vfs_loaded is True
+
     def test_idempotent_second_call_noop(self, tmp_path):
         from django_litestream_vfs import loader
 
         loader._vfs_loaded = False
+        fake_so = tmp_path / "litestream.so"
+        fake_so.write_bytes(b"\x7fELF")
 
-        mock_conn = MagicMock()
+        calls = []
 
-        fake_path = str(tmp_path / "litestream.so")
-        (tmp_path / "litestream.so").write_bytes(b"\x7fELF")
+        def mock_cdll(*args, **kwargs):
+            m = MagicMock()
+            m.sqlite3_auto_extension.return_value = 0
+            calls.append(1)
+            return m
 
-        with override_settings(LITESTREAM={"vfs_extension_path": fake_path}):
-            with patch("sqlite3.connect", return_value=mock_conn):
+        with override_settings(LITESTREAM={"vfs_extension_path": str(fake_so)}):
+            with patch(
+                "ctypes.util.find_library", return_value="/usr/lib/libsqlite3.so"
+            ), patch("ctypes.CDLL", side_effect=mock_cdll), patch(
+                "ctypes.c_void_p.in_dll", return_value=12345
+            ):
                 loader.ensure_vfs_loaded()
                 loader.ensure_vfs_loaded()
-
-        assert mock_conn.load_extension.call_count == 1
-        mock_conn.enable_load_extension.assert_called_with(True)
-        mock_conn.close.assert_called()
+                assert len(calls) == 2  # CDLL called exactly twice, no third call
 
     def test_raises_runtime_error_on_load_failure(self, tmp_path):
         from django_litestream_vfs import loader
 
         loader._vfs_loaded = False
+        fake_so = tmp_path / "litestream.so"
+        fake_so.write_bytes(b"\x7fELF")
 
-        mock_conn = MagicMock()
-        mock_conn.load_extension.side_effect = sqlite3.OperationalError("bad extension")
-
-        fake_path = str(tmp_path / "litestream.so")
-        (tmp_path / "litestream.so").write_bytes(b"\x7fELF")
-
-        with override_settings(LITESTREAM={"vfs_extension_path": fake_path}):
-            with patch("sqlite3.connect", return_value=mock_conn):
+        with override_settings(LITESTREAM={"vfs_extension_path": str(fake_so)}):
+            with patch("ctypes.CDLL", side_effect=OSError("dlopen failed")):
                 with pytest.raises(
                     RuntimeError, match="Failed to load Litestream VFS extension"
                 ):
                     loader.ensure_vfs_loaded()
 
-    def test_thread_safe_single_load(self):
+    def test_thread_safe_single_load(self, tmp_path):
         from django_litestream_vfs import loader
 
         loader._vfs_loaded = False
+        fake_so = tmp_path / "litestream.so"
+        fake_so.write_bytes(b"\x7fELF")
 
         import concurrent.futures
 
-        mock_conn = MagicMock()
+        def mock_cdll(*args, **kwargs):
+            m = MagicMock()
+            m.sqlite3_auto_extension.return_value = 0
+            return m
 
-        with override_settings(LITESTREAM={"vfs_extension_path": "/fake.so"}):
-            with patch("sqlite3.connect", return_value=mock_conn):
-                with patch.object(Path, "exists", return_value=True):
-                    with concurrent.futures.ThreadPoolExecutor(max_workers=4) as ex:
-                        list(ex.map(lambda _: loader.ensure_vfs_loaded(), range(4)))
-
-        assert mock_conn.load_extension.call_count == 1
+        with override_settings(LITESTREAM={"vfs_extension_path": str(fake_so)}):
+            with patch(
+                "ctypes.util.find_library", return_value="/usr/lib/libsqlite3.so"
+            ), patch("ctypes.CDLL", side_effect=mock_cdll), patch(
+                "ctypes.c_void_p.in_dll", return_value=12345
+            ):
+                with concurrent.futures.ThreadPoolExecutor(max_workers=4) as ex:
+                    list(ex.map(lambda _: loader.ensure_vfs_loaded(), range(4)))
         assert loader._vfs_loaded is True
 
 
@@ -172,18 +199,8 @@ class TestGetVfsDatabases:
 
 
 class TestVfsConfig:
-    def test_ready_loads_extension_when_vfs_configured(self):
-        import django_litestream_vfs
-
-        with override_settings(LITESTREAM={"vfs": {"prod": "s3://b/db.sqlite3"}}):
-            with patch("django_litestream_vfs.loader.ensure_vfs_loaded") as mock_load:
-                from django_litestream_vfs.apps import VfsConfig
-
-                config = VfsConfig("django_litestream_vfs", django_litestream_vfs)
-                config.ready()
-                mock_load.assert_called_once()
-
-    def test_ready_skips_when_no_vfs_configured(self):
+    def test_ready_is_noop(self):
+        """ready() does nothing -- VFS is loaded by the backend on first query."""
         import django_litestream_vfs
 
         with override_settings(LITESTREAM={}):
@@ -193,19 +210,6 @@ class TestVfsConfig:
                 config = VfsConfig("django_litestream_vfs", django_litestream_vfs)
                 config.ready()
                 mock_load.assert_not_called()
-
-    def test_ready_suppresses_load_failure(self):
-        import django_litestream_vfs
-
-        with override_settings(LITESTREAM={"vfs": {"prod": "s3://b/db.sqlite3"}}):
-            with patch(
-                "django_litestream_vfs.loader.ensure_vfs_loaded",
-                side_effect=RuntimeError("fail"),
-            ):
-                from django_litestream_vfs.apps import VfsConfig
-
-                config = VfsConfig("django_litestream_vfs", django_litestream_vfs)
-                config.ready()  # should not raise
 
 
 class TestDatabaseWrapper:

@@ -4,7 +4,8 @@
 
 from __future__ import annotations
 
-import sqlite3
+import ctypes
+import ctypes.util
 import threading
 
 from django_litestream_vfs.conf import vfs_settings
@@ -14,6 +15,15 @@ _vfs_load_lock = threading.Lock()
 
 
 def ensure_vfs_loaded() -> None:
+    """
+    Load the Litestream VFS extension into the SQLite library.
+
+    The extension uses a custom entry point (sqlite3_litestreamvfs_init)
+    that Python's sqlite3.load_extension() cannot call (it hardcodes
+    the default entry point name). We use ctypes to call
+    sqlite3_auto_extension() directly, which registers the VFS
+    globally for all future SQLite connections in this process.
+    """
     global _vfs_loaded
 
     if _vfs_loaded:
@@ -33,13 +43,30 @@ def ensure_vfs_loaded() -> None:
             )
 
         try:
-            conn = sqlite3.connect(":memory:")
-            conn.enable_load_extension(True)
-            conn.load_extension(str(vfs_path))
-            conn.close()
+            _load_vfs_ctypes(str(vfs_path))
         except Exception as e:
             raise RuntimeError(
-                f"Failed to load Litestream VFS extension from {vfs_path}. Error: {e}"
+                f"Failed to load Litestream VFS extension from {vfs_path}. "
+                f"Error: {e}"
             ) from e
 
         _vfs_loaded = True
+
+
+def _load_vfs_ctypes(vfs_path: str) -> None:
+    sqlite_lib = ctypes.util.find_library("sqlite3")
+    if not sqlite_lib:
+        raise RuntimeError("Could not find sqlite3 shared library")
+
+    sqlite = ctypes.CDLL(sqlite_lib, use_errno=True)
+
+    vfs_lib = ctypes.CDLL(vfs_path, use_errno=True)
+
+    entry = ctypes.c_void_p.in_dll(vfs_lib, "sqlite3_litestreamvfs_init")
+
+    sqlite.sqlite3_auto_extension.argtypes = [ctypes.c_void_p]
+    sqlite.sqlite3_auto_extension.restype = ctypes.c_int
+    sqlite.sqlite3_auto_extension(None)
+    ret = sqlite.sqlite3_auto_extension(entry)
+    if ret != 0:
+        raise RuntimeError(f"sqlite3_auto_extension failed with code {ret}")

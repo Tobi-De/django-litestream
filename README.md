@@ -157,11 +157,6 @@ This installs both `django-litestream` and `django-litestream-vfs` (the VFS exte
 # settings.py
 from django_litestream_vfs import get_vfs_databases
 
-INSTALLED_APPS = [
-    "django_litestream",
-    "django_litestream_vfs",  # loads VFS extension on startup
-]
-
 LITESTREAM = {
     "dbs": [{"path": "default"}],
     "vfs": {
