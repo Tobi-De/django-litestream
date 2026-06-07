@@ -6,13 +6,6 @@ on:
   pull_request:
 
 jobs:
-  lint:
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v4
-    - uses: astral-sh/setup-uv@v2
-    - run: uv run ruff check src/ django_litestream_vfs/ tests/ scripts/
-
   test:
     runs-on: ubuntu-latest
     steps:

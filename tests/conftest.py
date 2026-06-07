@@ -2,6 +2,7 @@ from __future__ import annotations
 
 import logging
 
+import pytest
 from django.conf import settings
 
 pytest_plugins = []  # type: ignore
@@ -32,3 +33,12 @@ def pytest_configure(config):
         SECRET_KEY="not-a-secret",
         LITESTREAM={},
     )
+
+
+@pytest.fixture
+def bin_path(tmp_path):
+    """A fake litestream binary so handle() doesn't raise FileNotFoundError."""
+    dummy = tmp_path / "litestream"
+    dummy.write_bytes(b"\x00")
+    dummy.chmod(0o755)
+    return dummy

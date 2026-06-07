@@ -212,7 +212,7 @@ dependencies = [
 ]
 
 [package.metadata]
-requires-dist = [{ name = "django-litestream", specifier = "==0.5.11" }]
+requires-dist = [{ name = "django-litestream", specifier = "~=0.5.11" }]
 
 [[package]]
 name = "docutils"

@@ -5,27 +5,17 @@
 from __future__ import annotations
 
 import platform
-import sys
 from dataclasses import dataclass
 from pathlib import Path
 
-from django.conf import settings
+from django_litestream.conf import AppSettings
 
 
 @dataclass(frozen=True)
-class VfsSettings:
+class VfsSettings(AppSettings):
     @property
-    def user_settings(self) -> dict[str, object]:
-        return getattr(settings, "LITESTREAM", {})
-
-    @property
-    def bin_path(self) -> Path:
-        return Path(
-            self.user_settings.get(
-                "bin_path",
-                Path(sys.executable).parent / "litestream",
-            )
-        )
+    def vfs_config(self) -> dict[str, object]:
+        return self.user_settings.get("vfs", {})
 
     @property
     def vfs_extension_path(self) -> Path:

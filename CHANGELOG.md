@@ -6,20 +6,33 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ## [unreleased]
 
-### 🚀 Features
+### 🐛 Bug Fixes
 
-- Create GitHub release on tag push
+- Vfs package not importable
 
-## [0.5.11] - 2026-06-06
+### 🧪 Testing
+
+- Add more tests
+
+### ⚙️ Miscellaneous Tasks
+
+- Run tests on push
+
+## [0.5.11] - 2026-06-07
 
 ### 🚀 Features
 
 - Update to Litestream v0.5.11 and add missing upstream commands
 - Install vfs via extra
+- Create GitHub release on tag push
 
 ### 🐛 Bug Fixes
 
 - Remove unsupported armv6/armv7 tags, add RECORD SHA256 hashes
+
+### 📚 Documentation
+
+- Trim readme
 
 ### ⚙️ Miscellaneous Tasks
 

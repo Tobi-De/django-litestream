@@ -2,8 +2,8 @@
 """Build platform-specific wheels for django-litestream and django-litestream-vfs.
 
 Downloads upstream litestream releases, extracts the binary (and VFS extension),
-and packages them into PEP 427 wheels using the data/scripts/ directory so that
-pip installs the binary onto the user's PATH.
+clones the pure-Python wheel, and injects the binary into data/scripts/ so that
+pip installs it onto the user's PATH. Outputs platform-tagged wheels to dist/.
 
 Usage:
     python scripts/build_binaries.py          # build both
@@ -15,7 +15,6 @@ from __future__ import annotations
 
 import argparse
 import base64
-import email.message
 import hashlib
 import io
 import re
@@ -23,7 +22,6 @@ import sys
 import tarfile
 import urllib.request
 import zipfile
-from email.policy import default as default_policy
 from pathlib import Path
 
 REPO_ROOT = Path(__file__).resolve().parent.parent
@@ -49,10 +47,6 @@ def _read_litestream_version() -> str:
 UPSTREAM_REPO = "https://github.com/benbjohnson/litestream"
 VERSION = _read_litestream_version()
 
-# ---------------------------------------------------------------------------
-# Platform target definitions
-# ---------------------------------------------------------------------------
-
 LITESTREAM_TARGETS: list[tuple[str, str]] = [
     ("linux-x86_64", "manylinux2014_x86_64.musllinux_1_1_x86_64"),
     ("linux-arm64", "manylinux2014_aarch64.musllinux_1_1_aarch64"),
@@ -66,13 +60,6 @@ VFS_TARGETS: list[tuple[str, str]] = [
     ("darwin-arm64", "macosx_11_0_arm64"),
     ("darwin-x86_64", "macosx_10_9_x86_64"),
 ]
-
-VFS_DIST = "django_litestream_vfs"
-
-
-# ---------------------------------------------------------------------------
-# URL generation
-# ---------------------------------------------------------------------------
 
 
 def _litestream_url(system: str, arch: str) -> str:
@@ -89,31 +76,20 @@ def _parse_target(target: str) -> tuple[str, str]:
     return system, arch
 
 
-# ---------------------------------------------------------------------------
-# Archive extraction
-# ---------------------------------------------------------------------------
-
-
 def _extract_from_tar(data: bytes, name_match: str) -> bytes:
     with tarfile.open(fileobj=io.BytesIO(data), mode="r:gz") as tf:
-        candidates = []
-        for member in tf.getmembers():
-            if member.isfile() and member.name.split("/")[-1] == name_match:
-                candidates.append(member)
-
+        candidates = [
+            m
+            for m in tf.getmembers()
+            if m.isfile() and m.name.split("/")[-1] == name_match
+        ]
         if not candidates:
             raise RuntimeError(f"Could not find file named '{name_match}' in archive")
-
         member = candidates[0]
         extracted = tf.extractfile(member)
         if extracted is None:
             raise RuntimeError(f"Could not extract {member.name}")
         return extracted.read()
-
-
-# ---------------------------------------------------------------------------
-# RECORD helpers
-# ---------------------------------------------------------------------------
 
 
 def _record_entry(filename: str, data: bytes) -> str:
@@ -124,86 +100,7 @@ def _record_entry(filename: str, data: bytes) -> str:
 
 
 # ---------------------------------------------------------------------------
-# Wheel metadata
-# ---------------------------------------------------------------------------
-
-
-def _make_metadata(name: str, version: str, summary: str, license_text: str) -> str:
-    msg = email.message.EmailMessage(policy=default_policy)
-    msg["Metadata-Version"] = "2.1"
-    msg["Name"] = name
-    msg["Version"] = version
-    msg["Summary"] = summary
-    msg["License"] = license_text
-    msg["Requires-Python"] = ">=3.12"
-    return str(msg)
-
-
-def _make_wheel_metadata(platform_tag: str) -> str:
-    return "\n".join(
-        [
-            "Wheel-Version: 1.0",
-            "Generator: build_binaries.py",
-            "Root-Is-Purelib: false",
-            f"Tag: py3-none-{platform_tag}",
-            "",
-        ]
-    )
-
-
-# ---------------------------------------------------------------------------
-# Standalone wheel builder (for VFS package)
-# ---------------------------------------------------------------------------
-
-
-def _build_wheel(
-    wheel_name: str,
-    version: str,
-    script_name: str,
-    script_data: bytes,
-    platform_tag: str,
-    summary: str,
-    license_text: str,
-    executable: bool = True,
-) -> Path:
-    dist_name = wheel_name.replace("-", "_")
-    wheel_filename = f"{dist_name}-{version}-py3-none-{platform_tag}.whl"
-
-    DIST_DIR.mkdir(parents=True, exist_ok=True)
-    output_path = DIST_DIR / wheel_filename
-
-    data_dir = f"{dist_name}-{version}.data"
-    dist_info_dir = f"{dist_name}-{version}.dist-info"
-    script_path = f"{data_dir}/scripts/{script_name}"
-
-    metadata_bytes = _make_metadata(dist_name, version, summary, license_text).encode()
-    wheel_bytes = _make_wheel_metadata(platform_tag).encode()
-
-    with zipfile.ZipFile(output_path, "w", zipfile.ZIP_DEFLATED) as zf:
-        info = zipfile.ZipInfo(script_path)
-        if executable:
-            info.external_attr = 0o100777 << 16
-        zf.writestr(info, script_data)
-
-        zf.writestr(f"{dist_info_dir}/METADATA", metadata_bytes)
-        zf.writestr(f"{dist_info_dir}/WHEEL", wheel_bytes)
-
-        record_body = "\n".join(
-            [
-                _record_entry(script_path, script_data),
-                _record_entry(f"{dist_info_dir}/METADATA", metadata_bytes),
-                _record_entry(f"{dist_info_dir}/WHEEL", wheel_bytes),
-                f"{dist_info_dir}/RECORD,,",
-                "",
-            ]
-        )
-        zf.writestr(f"{dist_info_dir}/RECORD", record_body)
-
-    return output_path
-
-
-# ---------------------------------------------------------------------------
-# Wheel-from-pure builder (clones pure wheel, injects binary, re-tags)
+# Wheel-from-pure builder -- clones a pure wheel, injects binary, re-tags
 # ---------------------------------------------------------------------------
 
 
@@ -215,8 +112,7 @@ def _build_wheel_from_pure(
 ) -> Path:
     name = pure_wheel.stem
     name = name.replace("-any", f"-{platform_tag}")
-    wheel_filename = f"{name}.whl"
-    output_path = DIST_DIR / wheel_filename
+    output_path = DIST_DIR / f"{name}.whl"
 
     records: list[tuple[str, bytes]] = []
     dist_info = None
@@ -266,9 +162,7 @@ def _build_wheel_from_pure(
         dest.writestr(info, script_data)
         records.append((script_path, script_data))
 
-        record_body = "\n".join(
-            _record_entry(filename, filedata) for filename, filedata in records
-        )
+        record_body = "\n".join(_record_entry(name, data) for name, data in records)
         record_body += f"\n{dist_info_dir}/RECORD,,\n"
 
         zinfo = zipfile.ZipInfo(f"{dist_info_dir}/RECORD")
@@ -278,7 +172,7 @@ def _build_wheel_from_pure(
 
 
 # ---------------------------------------------------------------------------
-# Main build entry points
+# Build entry points
 # ---------------------------------------------------------------------------
 
 
@@ -290,9 +184,7 @@ def build_litestream_wheels(pure_wheel: Path) -> list[Path]:
         print(f"  [{target}] Downloading {url} ...")
         with urllib.request.urlopen(url) as resp:
             data = resp.read()
-
         binary = _extract_from_tar(data, "litestream")
-
         print(f"  [{target}] Building wheel for {platform_tag} ...")
         wheel = _build_wheel_from_pure(pure_wheel, platform_tag, "litestream", binary)
         print(f"  [{target}] -> {wheel.name}")
@@ -300,7 +192,7 @@ def build_litestream_wheels(pure_wheel: Path) -> list[Path]:
     return built
 
 
-def build_vfs_wheels() -> list[Path]:
+def build_vfs_wheels(pure_wheel: Path) -> list[Path]:
     built = []
     for target, platform_tag in VFS_TARGETS:
         system, arch = _parse_target(target)
@@ -308,20 +200,10 @@ def build_vfs_wheels() -> list[Path]:
         print(f"  [vfs:{target}] Downloading {url} ...")
         with urllib.request.urlopen(url) as resp:
             data = resp.read()
-
         extension_name = "litestream.dylib" if system == "darwin" else "litestream.so"
         binary = _extract_from_tar(data, extension_name)
-
         print(f"  [vfs:{target}] Building wheel for {platform_tag} ...")
-        wheel = _build_wheel(
-            VFS_DIST,
-            VERSION,
-            extension_name,
-            binary,
-            platform_tag,
-            summary="Litestream VFS extension for read-only replica access",
-            license_text="Apache-2.0",
-        )
+        wheel = _build_wheel_from_pure(pure_wheel, platform_tag, extension_name, binary)
         print(f"  [vfs:{target}] -> {wheel.name}")
         built.append(wheel)
     return built
@@ -356,8 +238,21 @@ def main() -> None:
         print()
 
     if not args.no_vfs:
+        vfs_dist = Path("django_litestream_vfs") / "dist"
+        vfs_pure_wheels = sorted(
+            vfs_dist.glob("django_litestream_vfs-*-py3-none-any.whl")
+        )
+        if not vfs_pure_wheels:
+            print(
+                "ERROR: No VFS pure-Python wheel found in django_litestream_vfs/dist/."
+                " Run 'uv build django_litestream_vfs' first."
+            )
+            sys.exit(1)
+        vfs_pure_wheel = vfs_pure_wheels[-1]
+        print(f"Using VFS pure wheel: {vfs_pure_wheel}")
+        print()
         print("=== Building django-litestream-vfs wheels ===")
-        build_vfs_wheels()
+        build_vfs_wheels(vfs_pure_wheel)
         print()
 
     print("Done.")

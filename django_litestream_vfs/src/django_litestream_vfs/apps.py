@@ -9,8 +9,7 @@ class VfsConfig(AppConfig):
         from django_litestream_vfs.conf import vfs_settings
         from django_litestream_vfs.loader import ensure_vfs_loaded
 
-        vfs_config = vfs_settings.user_settings.get("vfs", {})
-        if not vfs_config:
+        if not vfs_settings.vfs_config:
             return
 
         try:

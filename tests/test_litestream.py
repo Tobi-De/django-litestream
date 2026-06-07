@@ -26,6 +26,7 @@ from django_litestream.management.commands.litestream import (
 # Config generation
 # ---------------------------------------------------------------------------
 
+
 def test_generate_temp_config_user_defined_with_replica():
     litestream_config = {
         "dbs": [
@@ -80,7 +81,11 @@ def test_generate_temp_config_multiple_dbs():
             {"path": "db.sqlite3"},
             {
                 "path": "other.sqlite3",
-                "replica": {"type": "s3", "bucket": "other-bucket", "path": "other.sqlite3"},
+                "replica": {
+                    "type": "s3",
+                    "bucket": "other-bucket",
+                    "path": "other.sqlite3",
+                },
             },
         ],
     }
@@ -101,7 +106,9 @@ def test_generate_temp_config_skips_non_sqlite():
     litestream_config = {"dbs": [{"path": "default"}]}
     with override_settings(
         LITESTREAM=litestream_config,
-        DATABASES={"default": {"ENGINE": "django.db.backends.postgresql", "NAME": "mydb"}},
+        DATABASES={
+            "default": {"ENGINE": "django.db.backends.postgresql", "NAME": "mydb"}
+        },
     ):
         with pytest.raises(SystemExit):
             generate_temp_config().__enter__()
@@ -125,6 +132,7 @@ def test_generate_temp_config_preserves_user_global_keys():
 # Verify command
 # ---------------------------------------------------------------------------
 
+
 def test_verify(tmp_path):
     sqlite_db = tmp_path / "db.sqlite3"
     temp_config = tmp_path / "litestream.yml"
@@ -133,8 +141,9 @@ def test_verify(tmp_path):
         shutil.copy(sqlite_db, args[0][5])
         return subprocess.CompletedProcess(args, 0)
 
-    with patch("time.sleep", side_effect=lambda _: _), patch(
-        "subprocess.run", side_effect=mock_subprocess_run
+    with (
+        patch("time.sleep", side_effect=lambda _: _),
+        patch("subprocess.run", side_effect=mock_subprocess_run),
     ):
         exit_code, msg = Command().verify(sqlite_db, config=temp_config)
         assert exit_code == 0
@@ -154,8 +163,9 @@ def test_verify_fails(tmp_path):
         shutil.copy(outdated_db, args[0][5])
         return subprocess.CompletedProcess(args, 0)
 
-    with patch("time.sleep", side_effect=lambda _: _), patch(
-        "subprocess.run", side_effect=mock_subprocess_run
+    with (
+        patch("time.sleep", side_effect=lambda _: _),
+        patch("subprocess.run", side_effect=mock_subprocess_run),
     ):
         exit_code, msg = Command().verify(sqlite_db, config=temp_config)
         assert exit_code == 1
@@ -164,6 +174,7 @@ def test_verify_fails(tmp_path):
 # ---------------------------------------------------------------------------
 # CLI: parse_args (config-based commands)
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.parametrize("subcommand", sorted(LITESTREAM_COMMANDS))
 def test_parse_args_no_extra_options(subcommand):
@@ -175,34 +186,51 @@ def test_parse_args_no_extra_options(subcommand):
     assert "-config" in args
 
 
-@pytest.mark.parametrize("subcommand,extra_options,expected_flags", [
-    ("databases", {}, []),
-    ("ltx", {"db_path": "/tmp/db.sqlite3"}, ["/tmp/db.sqlite3"]),
-    ("ltx", {"replica": "s3"}, ["-replica", "s3"]),
-    ("ltx", {"level": 2}, ["-level", "2"]),
-    ("replicate", {"exec": ["gunicorn", "app"]}, ["-exec", "gunicorn app"]),
-    ("replicate", {"once": True}, ["-once"]),
-    ("replicate", {"force_snapshot": True}, ["-force-snapshot"]),
-    ("replicate", {"enforce_retention": True}, ["-enforce-retention"]),
-    ("replicate", {"restore_if_db_not_exists": True}, ["-restore-if-db-not-exists"]),
-    ("restore", {"db_path": "/tmp/db.sqlite3"}, ["/tmp/db.sqlite3"]),
-    ("restore", {"o": Path("/tmp/out.db")}, ["-o", "/tmp/out.db"]),
-    ("restore", {"if_replica_exists": True}, ["-if-replica-exists"]),
-    ("restore", {"if_db_not_exists": True}, ["-if-db-not-exists"]),
-    ("restore", {"parallelism": 16}, ["-parallelism", "16"]),
-    ("restore", {"timestamp": "2025-01-01T00:00:00Z"}, ["-timestamp", "2025-01-01T00:00:00Z"]),
-    ("restore", {"f": True}, ["-f"]),
-    ("status", {"db_path": "/tmp/db.sqlite3"}, ["/tmp/db.sqlite3"]),
-    ("sync", {"db_path": "/tmp/db.sqlite3"}, ["/tmp/db.sqlite3"]),
-    ("wal", {"db_path": "/tmp/db.sqlite3", "replica": "s3"}, ["-replica", "s3", "/tmp/db.sqlite3"]),
-    ("wal", {"generation": "abc123"}, ["-generation", "abc123"]),
-    ("reset", {"db_path": "/tmp/db.sqlite3"}, ["/tmp/db.sqlite3"]),
-    ("reset", {"dry_run": True}, ["-dry-run"]),
-])
+@pytest.mark.parametrize(
+    "subcommand,extra_options,expected_flags",
+    [
+        ("databases", {}, []),
+        ("ltx", {"db_path": "/tmp/db.sqlite3"}, ["/tmp/db.sqlite3"]),
+        ("ltx", {"replica": "s3"}, ["-replica", "s3"]),
+        ("ltx", {"level": 2}, ["-level", "2"]),
+        ("replicate", {"exec": ["gunicorn", "app"]}, ["-exec", "gunicorn app"]),
+        ("replicate", {"once": True}, ["-once"]),
+        ("replicate", {"force_snapshot": True}, ["-force-snapshot"]),
+        ("replicate", {"enforce_retention": True}, ["-enforce-retention"]),
+        (
+            "replicate",
+            {"restore_if_db_not_exists": True},
+            ["-restore-if-db-not-exists"],
+        ),
+        ("restore", {"db_path": "/tmp/db.sqlite3"}, ["/tmp/db.sqlite3"]),
+        ("restore", {"o": Path("/tmp/out.db")}, ["-o", "/tmp/out.db"]),
+        ("restore", {"if_replica_exists": True}, ["-if-replica-exists"]),
+        ("restore", {"if_db_not_exists": True}, ["-if-db-not-exists"]),
+        ("restore", {"parallelism": 16}, ["-parallelism", "16"]),
+        (
+            "restore",
+            {"timestamp": "2025-01-01T00:00:00Z"},
+            ["-timestamp", "2025-01-01T00:00:00Z"],
+        ),
+        ("restore", {"f": True}, ["-f"]),
+        ("status", {"db_path": "/tmp/db.sqlite3"}, ["/tmp/db.sqlite3"]),
+        ("sync", {"db_path": "/tmp/db.sqlite3"}, ["/tmp/db.sqlite3"]),
+        (
+            "wal",
+            {"db_path": "/tmp/db.sqlite3", "replica": "s3"},
+            ["-replica", "s3", "/tmp/db.sqlite3"],
+        ),
+        ("wal", {"generation": "abc123"}, ["-generation", "abc123"]),
+        ("reset", {"db_path": "/tmp/db.sqlite3"}, ["/tmp/db.sqlite3"]),
+        ("reset", {"dry_run": True}, ["-dry-run"]),
+    ],
+)
 def test_parse_args_parametrized(subcommand, extra_options, expected_flags):
     cmd = Command()
     with patch.object(cmd, "stdout"):
-        args = cmd.parse_args(subcommand, {"config": Path("/tmp/cfg.yml"), **extra_options})
+        args = cmd.parse_args(
+            subcommand, {"config": Path("/tmp/cfg.yml"), **extra_options}
+        )
     for flag in expected_flags:
         assert flag in args, f"Expected {flag!r} in {args}"
 
@@ -210,7 +238,9 @@ def test_parse_args_parametrized(subcommand, extra_options, expected_flags):
 def test_parse_args_bool_false_omitted():
     cmd = Command()
     with patch.object(cmd, "stdout"):
-        args = cmd.parse_args("replicate", {"config": Path("/tmp/cfg.yml"), "once": False})
+        args = cmd.parse_args(
+            "replicate", {"config": Path("/tmp/cfg.yml"), "once": False}
+        )
     assert "-once" not in args
 
 
@@ -223,18 +253,26 @@ def test_parse_args_none_omitted():
 
 def test_parse_args_db_alias_resolution():
     cmd = Command()
-    with patch("django_litestream.management.commands.litestream.settings") as mock_conf:
+    with patch(
+        "django_litestream.management.commands.litestream.settings"
+    ) as mock_conf:
         mock_conf.DATABASES = {
-            "default": {"ENGINE": "django.db.backends.sqlite3", "NAME": "/path/to/db.sqlite3"},
+            "default": {
+                "ENGINE": "django.db.backends.sqlite3",
+                "NAME": "/path/to/db.sqlite3",
+            },
         }
         with patch.object(cmd, "stdout"):
-            args = cmd.parse_args("sync", {"config": Path("/tmp/cfg.yml"), "db_path": "default"})
+            args = cmd.parse_args(
+                "sync", {"config": Path("/tmp/cfg.yml"), "db_path": "default"}
+            )
     assert "/path/to/db.sqlite3" in args
 
 
 # ---------------------------------------------------------------------------
 # CLI: parse_daemon_args (IPC commands)
 # ---------------------------------------------------------------------------
+
 
 @pytest.mark.parametrize("subcommand", sorted(DAEMON_COMMANDS))
 def test_daemon_args_basic(subcommand):
@@ -244,17 +282,34 @@ def test_daemon_args_basic(subcommand):
     assert args[0] == subcommand
 
 
-@pytest.mark.parametrize("subcommand,opts,expected_flags", [
-    ("info", {"json": True, "timeout": 30, "socket": "/tmp/sock"}, ["-json", "-timeout", "30", "-socket", "/tmp/sock"]),
-    ("list", {"json": True}, ["-json"]),
-    ("register", {"db_path": "default", "replica": "s3://b/db"}, ["default", "-replica", "s3://b/db"]),
-    ("unregister", {"db_path": "default", "dry_run": True}, ["default", "-dry-run"]),
-    ("start", {"db_path": "default"}, ["default"]),
-    ("stop", {"db_path": "default", "timeout": 60}, ["default", "-timeout", "60"]),
-])
+@pytest.mark.parametrize(
+    "subcommand,opts,expected_flags",
+    [
+        (
+            "info",
+            {"json": True, "timeout": 30, "socket": "/tmp/sock"},
+            ["-json", "-timeout", "30", "-socket", "/tmp/sock"],
+        ),
+        ("list", {"json": True}, ["-json"]),
+        (
+            "register",
+            {"db_path": "default", "replica": "s3://b/db"},
+            ["default", "-replica", "s3://b/db"],
+        ),
+        (
+            "unregister",
+            {"db_path": "default", "dry_run": True},
+            ["default", "-dry-run"],
+        ),
+        ("start", {"db_path": "default"}, ["default"]),
+        ("stop", {"db_path": "default", "timeout": 60}, ["default", "-timeout", "60"]),
+    ],
+)
 def test_daemon_args_parametrized(subcommand, opts, expected_flags):
     cmd = Command()
-    with patch("django_litestream.management.commands.litestream.settings") as mock_conf:
+    with patch(
+        "django_litestream.management.commands.litestream.settings"
+    ) as mock_conf:
         mock_conf.DATABASES = {}
         with patch.object(cmd, "stdout"):
             args = cmd.parse_daemon_args(subcommand, opts)
@@ -266,6 +321,7 @@ def test_daemon_args_parametrized(subcommand, opts, expected_flags):
 # CLI: handle dispatch
 # ---------------------------------------------------------------------------
 
+
 def test_handle_binary_missing(tmp_path):
     cmd = Command()
     with override_settings(LITESTREAM={"bin_path": str(tmp_path / "nonexistent")}):
@@ -273,42 +329,44 @@ def test_handle_binary_missing(tmp_path):
             cmd.handle(subcommand="config")
 
 
-def test_handle_version_calls_subprocess():
+def test_handle_version_calls_subprocess(bin_path):
     cmd = Command()
-    with patch.object(subprocess, "run") as mock_run:
-        with patch.object(cmd, "stdout"):
-            cmd.handle(subcommand="version", verbosity=1)
+    with override_settings(LITESTREAM={"bin_path": str(bin_path)}):
+        with patch.object(subprocess, "run") as mock_run:
+            with patch.object(cmd, "stdout"):
+                cmd.handle(subcommand="version", verbosity=1)
     mock_run.assert_called_once()
-    assert mock_run.call_args[0][0][0] == app_settings.bin_path
+    assert str(mock_run.call_args[0][0][0]) == str(bin_path)
 
 
-def test_handle_config_reads_config():
-    litestream_config = {"dbs": [{"path": "db.sqlite3"}]}
+def test_handle_config_reads_config(bin_path):
+    litestream_config = {"bin_path": str(bin_path), "dbs": [{"path": "db.sqlite3"}]}
     with override_settings(LITESTREAM=litestream_config):
         cmd = Command()
         with patch.object(cmd, "stdout"):
             cmd.handle(subcommand="config")
 
 
-def test_handle_no_subcommand_shows_help():
+def test_handle_no_subcommand_shows_help(bin_path):
     cmd = Command()
-    with patch.object(cmd, "stdout"):
-        with patch.object(cmd, "print_help") as mock_help:
-            cmd.handle(subcommand=None, verbosity=1)
+    with override_settings(LITESTREAM={"bin_path": str(bin_path)}):
+        with patch.object(cmd, "stdout"):
+            with patch.object(cmd, "print_help") as mock_help:
+                cmd.handle(subcommand=None, verbosity=1)
     mock_help.assert_called_once()
 
 
-def test_handle_daemon_command():
+def test_handle_daemon_command(bin_path):
     cmd = Command()
-    with patch.object(subprocess, "run") as mock_run:
-        with patch.object(cmd, "stdout"):
-            cmd.handle(subcommand="info", verbosity=1)
+    with override_settings(LITESTREAM={"bin_path": str(bin_path)}):
+        with patch.object(subprocess, "run") as mock_run:
+            with patch.object(cmd, "stdout"):
+                cmd.handle(subcommand="info", verbosity=1)
     mock_run.assert_called_once()
-    assert str(mock_run.call_args[0][0][0]) == str(app_settings.bin_path)
 
 
-def test_handle_config_based_command():
-    litestream_config = {"dbs": [{"path": "db.sqlite3"}]}
+def test_handle_config_based_command(bin_path):
+    litestream_config = {"bin_path": str(bin_path), "dbs": [{"path": "db.sqlite3"}]}
     with override_settings(LITESTREAM=litestream_config):
         cmd = Command()
         with patch.object(subprocess, "run") as mock_run:
@@ -321,16 +379,24 @@ def test_handle_config_based_command():
 # Helpers
 # ---------------------------------------------------------------------------
 
+
 def test_db_location_from_alias_sqlite():
-    with patch("django_litestream.management.commands.litestream.settings") as mock_conf:
+    with patch(
+        "django_litestream.management.commands.litestream.settings"
+    ) as mock_conf:
         mock_conf.DATABASES = {
-            "default": {"ENGINE": "django.db.backends.sqlite3", "NAME": "/path/to/db.sqlite3"},
+            "default": {
+                "ENGINE": "django.db.backends.sqlite3",
+                "NAME": "/path/to/db.sqlite3",
+            },
         }
         assert _db_location_from_alias("default") == "/path/to/db.sqlite3"
 
 
 def test_db_location_from_alias_non_sqlite():
-    with patch("django_litestream.management.commands.litestream.settings") as mock_conf:
+    with patch(
+        "django_litestream.management.commands.litestream.settings"
+    ) as mock_conf:
         mock_conf.DATABASES = {
             "default": {"ENGINE": "django.db.backends.postgresql", "NAME": "mydb"},
         }
@@ -338,7 +404,9 @@ def test_db_location_from_alias_non_sqlite():
 
 
 def test_db_location_from_alias_unknown():
-    with patch("django_litestream.management.commands.litestream.settings") as mock_conf:
+    with patch(
+        "django_litestream.management.commands.litestream.settings"
+    ) as mock_conf:
         mock_conf.DATABASES = {}
         assert _db_location_from_alias("unknown") == "unknown"
 
@@ -347,6 +415,7 @@ def test_db_location_from_alias_unknown():
 # Structural / regression
 # ---------------------------------------------------------------------------
 
+
 def test_bin_path_default():
     expected = Path(sys.executable).parent / "litestream"
     assert app_settings.bin_path == expected
@@ -354,8 +423,16 @@ def test_bin_path_default():
 
 def test_litestream_command_coverage():
     expected = {
-        "databases", "ltx", "mcp", "replicate", "restore",
-        "status", "sync", "version", "wal", "reset",
+        "databases",
+        "ltx",
+        "mcp",
+        "replicate",
+        "restore",
+        "status",
+        "sync",
+        "version",
+        "wal",
+        "reset",
     }
     assert set(LITESTREAM_COMMANDS.keys()) == expected
 
