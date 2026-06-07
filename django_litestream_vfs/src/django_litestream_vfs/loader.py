@@ -18,11 +18,13 @@ def ensure_vfs_loaded() -> None:
     """
     Load the Litestream VFS extension into the SQLite library.
 
-    The extension uses a custom entry point (sqlite3_litestreamvfs_init)
-    that Python's sqlite3.load_extension() cannot call (it hardcodes
-    the default entry point name). We use ctypes to call
-    sqlite3_auto_extension() directly, which registers the VFS
-    globally for all future SQLite connections in this process.
+    Python's sqlite3.load_extension() hardcodes the entry point as
+    "sqlite3_extension_init", but litestream-vfs uses the custom
+    entry point "sqlite3_litestreamvfs_init". We use ctypes to call
+    sqlite3_load_extension() with the correct entry point name.
+
+    The VFS handler is registered globally for all SQLite connections
+    in this process. Once loaded, opening with ?vfs=litestream works.
     """
     global _vfs_loaded
 
@@ -43,30 +45,73 @@ def ensure_vfs_loaded() -> None:
             )
 
         try:
-            _load_vfs_ctypes(str(vfs_path))
+            _load_vfs(str(vfs_path))
+        except OSError:
+            raise
         except Exception as e:
             raise RuntimeError(
-                f"Failed to load Litestream VFS extension from {vfs_path}. "
-                f"Error: {e}"
+                f"Failed to load Litestream VFS extension from {vfs_path}. Error: {e}"
             ) from e
 
         _vfs_loaded = True
 
 
-def _load_vfs_ctypes(vfs_path: str) -> None:
+def _load_vfs(vfs_path: str) -> None:
     sqlite_lib = ctypes.util.find_library("sqlite3")
     if not sqlite_lib:
         raise RuntimeError("Could not find sqlite3 shared library")
 
     sqlite = ctypes.CDLL(sqlite_lib, use_errno=True)
 
-    vfs_lib = ctypes.CDLL(vfs_path, use_errno=True)
+    sqlite.sqlite3_open_v2.argtypes = [
+        ctypes.c_char_p,
+        ctypes.POINTER(ctypes.c_void_p),
+        ctypes.c_int,
+        ctypes.c_char_p,
+    ]
+    sqlite.sqlite3_open_v2.restype = ctypes.c_int
 
-    entry = ctypes.c_void_p.in_dll(vfs_lib, "sqlite3_litestreamvfs_init")
+    sqlite.sqlite3_enable_load_extension.argtypes = [
+        ctypes.c_void_p,
+        ctypes.c_int,
+    ]
+    sqlite.sqlite3_enable_load_extension.restype = ctypes.c_int
 
-    sqlite.sqlite3_auto_extension.argtypes = [ctypes.c_void_p]
-    sqlite.sqlite3_auto_extension.restype = ctypes.c_int
-    sqlite.sqlite3_auto_extension(None)
-    ret = sqlite.sqlite3_auto_extension(entry)
-    if ret != 0:
-        raise RuntimeError(f"sqlite3_auto_extension failed with code {ret}")
+    sqlite.sqlite3_load_extension.argtypes = [
+        ctypes.c_void_p,
+        ctypes.c_char_p,
+        ctypes.c_char_p,
+        ctypes.POINTER(ctypes.c_char_p),
+    ]
+    sqlite.sqlite3_load_extension.restype = ctypes.c_int
+
+    sqlite.sqlite3_close.argtypes = [ctypes.c_void_p]
+    sqlite.sqlite3_close.restype = ctypes.c_int
+
+    handle = ctypes.c_void_p()
+    rc = sqlite.sqlite3_open_v2(
+        b":memory:",
+        ctypes.byref(handle),
+        0x00000002 | 0x00000004 | 0x00000040,  # SQLITE_OPEN_READWRITE | CREATE | URI
+        None,
+    )
+    if rc != 0:
+        raise RuntimeError(f"sqlite3_open_v2 failed with code {rc}")
+
+    try:
+        rc = sqlite.sqlite3_enable_load_extension(handle, 1)
+        if rc != 0:
+            raise RuntimeError(f"sqlite3_enable_load_extension failed with code {rc}")
+
+        err = ctypes.c_char_p()
+        rc = sqlite.sqlite3_load_extension(
+            handle,
+            vfs_path.encode(),
+            b"sqlite3_litestreamvfs_init",
+            ctypes.byref(err),
+        )
+        if rc != 0:
+            msg = err.value.decode() if err.value else f"error code {rc}"
+            raise RuntimeError(msg)
+    finally:
+        sqlite.sqlite3_close(handle)

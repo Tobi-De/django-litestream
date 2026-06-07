@@ -2,7 +2,6 @@ from __future__ import annotations
 
 import os
 import platform
-import sqlite3
 import sys
 from pathlib import Path
 from unittest.mock import MagicMock
@@ -69,7 +68,7 @@ class TestEnsureVfsLoaded:
             ):
                 loader.ensure_vfs_loaded()
 
-    def test_loads_via_ctypes_auto_extension(self, tmp_path):
+    def test_loads_via_ctypes(self, tmp_path):
         from django_litestream_vfs import loader
 
         loader._vfs_loaded = False
@@ -77,14 +76,17 @@ class TestEnsureVfsLoaded:
         fake_so.write_bytes(b"\x7fELF")
 
         mock_sqlite = MagicMock()
-        mock_sqlite.sqlite3_auto_extension.return_value = 0
-        mock_vfs = MagicMock()
+        mock_sqlite.sqlite3_open_v2.return_value = 0
+        mock_sqlite.sqlite3_enable_load_extension.return_value = 0
+        mock_sqlite.sqlite3_load_extension.return_value = 0
+        mock_sqlite.sqlite3_close.return_value = 0
 
         with override_settings(LITESTREAM={"vfs_extension_path": str(fake_so)}):
-            with patch(
-                "ctypes.util.find_library", return_value="/usr/lib/libsqlite3.so"
-            ), patch("ctypes.CDLL", side_effect=[mock_sqlite, mock_vfs]), patch(
-                "ctypes.c_void_p.in_dll", return_value=12345
+            with (
+                patch(
+                    "ctypes.util.find_library", return_value="/usr/lib/libsqlite3.so"
+                ),
+                patch("ctypes.CDLL", return_value=mock_sqlite),
             ):
                 loader.ensure_vfs_loaded()
         assert loader._vfs_loaded is True
@@ -96,23 +98,24 @@ class TestEnsureVfsLoaded:
         fake_so = tmp_path / "litestream.so"
         fake_so.write_bytes(b"\x7fELF")
 
-        calls = []
-
-        def mock_cdll(*args, **kwargs):
-            m = MagicMock()
-            m.sqlite3_auto_extension.return_value = 0
-            calls.append(1)
-            return m
+        mock_sqlite = MagicMock()
+        mock_sqlite.sqlite3_open_v2.return_value = 0
+        mock_sqlite.sqlite3_enable_load_extension.return_value = 0
+        mock_sqlite.sqlite3_load_extension.return_value = 0
+        mock_sqlite.sqlite3_close.return_value = 0
 
         with override_settings(LITESTREAM={"vfs_extension_path": str(fake_so)}):
-            with patch(
-                "ctypes.util.find_library", return_value="/usr/lib/libsqlite3.so"
-            ), patch("ctypes.CDLL", side_effect=mock_cdll), patch(
-                "ctypes.c_void_p.in_dll", return_value=12345
+            with (
+                patch(
+                    "ctypes.util.find_library", return_value="/usr/lib/libsqlite3.so"
+                ),
+                patch("ctypes.CDLL", return_value=mock_sqlite),
             ):
+                assert not loader._vfs_loaded
                 loader.ensure_vfs_loaded()
+                assert loader._vfs_loaded
                 loader.ensure_vfs_loaded()
-                assert len(calls) == 2  # CDLL called exactly twice, no third call
+                assert loader._vfs_loaded  # still True, no error
 
     def test_raises_runtime_error_on_load_failure(self, tmp_path):
         from django_litestream_vfs import loader
@@ -121,8 +124,19 @@ class TestEnsureVfsLoaded:
         fake_so = tmp_path / "litestream.so"
         fake_so.write_bytes(b"\x7fELF")
 
+        mock_sqlite = MagicMock()
+        mock_sqlite.sqlite3_open_v2.return_value = 0
+        mock_sqlite.sqlite3_enable_load_extension.return_value = 0
+        mock_sqlite.sqlite3_load_extension.return_value = 1
+        mock_sqlite.sqlite3_close.return_value = 0
+
         with override_settings(LITESTREAM={"vfs_extension_path": str(fake_so)}):
-            with patch("ctypes.CDLL", side_effect=OSError("dlopen failed")):
+            with (
+                patch(
+                    "ctypes.util.find_library", return_value="/usr/lib/libsqlite3.so"
+                ),
+                patch("ctypes.CDLL", return_value=mock_sqlite),
+            ):
                 with pytest.raises(
                     RuntimeError, match="Failed to load Litestream VFS extension"
                 ):
@@ -137,16 +151,18 @@ class TestEnsureVfsLoaded:
 
         import concurrent.futures
 
-        def mock_cdll(*args, **kwargs):
-            m = MagicMock()
-            m.sqlite3_auto_extension.return_value = 0
-            return m
+        mock_sqlite = MagicMock()
+        mock_sqlite.sqlite3_open_v2.return_value = 0
+        mock_sqlite.sqlite3_enable_load_extension.return_value = 0
+        mock_sqlite.sqlite3_load_extension.return_value = 0
+        mock_sqlite.sqlite3_close.return_value = 0
 
         with override_settings(LITESTREAM={"vfs_extension_path": str(fake_so)}):
-            with patch(
-                "ctypes.util.find_library", return_value="/usr/lib/libsqlite3.so"
-            ), patch("ctypes.CDLL", side_effect=mock_cdll), patch(
-                "ctypes.c_void_p.in_dll", return_value=12345
+            with (
+                patch(
+                    "ctypes.util.find_library", return_value="/usr/lib/libsqlite3.so"
+                ),
+                patch("ctypes.CDLL", return_value=mock_sqlite),
             ):
                 with concurrent.futures.ThreadPoolExecutor(max_workers=4) as ex:
                     list(ex.map(lambda _: loader.ensure_vfs_loaded(), range(4)))

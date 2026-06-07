@@ -8,7 +8,27 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### 🐛 Bug Fixes
 
+- Use ctypes to load VFS with correct entry point sqlite3_litestreamvfs_init
+
+## [0.5.11.post4] - 2026-06-07
+
+### 🐛 Bug Fixes
+
+- Strip replica url it before passing to the parent
+
+## [0.5.11.post3] - 2026-06-07
+
+### 🐛 Bug Fixes
+
+- VFS backend as package with base.py for Django 6.x
+- Use ctypes to load VFS extension with correct entry point
+
+## [0.5.11.post2] - 2026-06-07
+
+### 🐛 Bug Fixes
+
 - Add --no-vfs to platform tests, verify vfs import
+- Restructure VFS backend as a package with base.py for Django 6.x
 
 ### ⚙️ Miscellaneous Tasks
 
