@@ -49,4 +49,5 @@ class DatabaseWrapper(base.DatabaseWrapper):
         if replica_url:
             os.environ["LITESTREAM_REPLICA_URL"] = replica_url
 
+        conn_params.pop("litestream_replica_url", None)
         return super().get_new_connection(conn_params)
