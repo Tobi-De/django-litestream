@@ -48,11 +48,5 @@ bumpver VERSION:
 # Use for wrapper-only fixes when litestream upstream hasn't changed.
 # Does NOT bump VFS package (VFS version stays locked to upstream litestream).
 bump-post:
-    #!/usr/bin/env bash
-    set -euo pipefail
     uvx bump-my-version bump post_n
-    version="$(uvx bump-my-version show current_version)"
-    git add -A
-    git commit -m "Bump version: $(uvx bump-my-version show current_version --increment post_n) → ${version}"
-    git tag "v${version}"
     git push && git push --tags

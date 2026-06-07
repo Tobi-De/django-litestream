@@ -161,7 +161,7 @@ wheels = [
 
 [[package]]
 name = "django-litestream"
-version = "0.5.11"
+version = "0.5.11.post1"
 source = { editable = "." }
 dependencies = [
     { name = "django" },
