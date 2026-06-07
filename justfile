@@ -14,9 +14,9 @@ _default:
     just --fmt --unstable
     uvx prek run -a
 
-# Build platform-specific binary wheels (run 'uv build' first)
+# Build platform-specific binary wheels (run 'uv build' and 'uv build django_litestream_vfs' first)
 build-bin:
-    uv build && python scripts/build_binaries.py
+    uv build && uv build django_litestream_vfs && python scripts/build_binaries.py
 
 @dj *ARGS:
     cd demo && uv run python manage.py {{ ARGS }}
