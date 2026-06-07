@@ -205,7 +205,7 @@ docs = [
 
 [[package]]
 name = "django-litestream-vfs"
-version = "0.5.11"
+version = "0.5.11.post1"
 source = { directory = "django_litestream_vfs" }
 dependencies = [
     { name = "django-litestream" },
