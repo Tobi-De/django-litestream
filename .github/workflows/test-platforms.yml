@@ -18,7 +18,7 @@ jobs:
     - name: Build wheels
       run: |
         uv build
-        python scripts/build_binaries.py
+        python scripts/build_binaries.py --no-vfs
     - name: Install from wheel
       run: |
         uv pip install --system dist/django_litestream-*-manylinux*x86_64*.whl
@@ -36,7 +36,7 @@ jobs:
     - name: Build and install wheel
       run: |
         uv build
-        python scripts/build_binaries.py
+        python scripts/build_binaries.py --no-vfs
         uv pip install --system dist/django_litestream-*-manylinux*aarch64*.whl
         which litestream && litestream version
         python -c "import django_litestream; print('import OK')"
@@ -52,7 +52,7 @@ jobs:
     - name: Build and install wheel
       run: |
         uv build
-        python scripts/build_binaries.py
+        python scripts/build_binaries.py --no-vfs
         uv pip install --system dist/django_litestream-*-macosx*x86_64*.whl
         which litestream && litestream version
         python -c "import django_litestream; print('import OK')"
@@ -68,7 +68,7 @@ jobs:
     - name: Build and install wheel
       run: |
         uv build
-        python scripts/build_binaries.py
+        python scripts/build_binaries.py --no-vfs
         uv pip install --system dist/django_litestream-*-macosx*arm64*.whl
         which litestream && litestream version
         python -c "import django_litestream; print('import OK')"
@@ -84,6 +84,7 @@ jobs:
     - name: Build wheels
       run: |
         uv build
+        uv build django_litestream_vfs
         python scripts/build_binaries.py
     - name: Install main + VFS wheels
       run: |
@@ -93,6 +94,8 @@ jobs:
         VFS_PATH="$(dirname "$(which litestream)")/litestream.so"
         ls -la "$VFS_PATH"
         python -c "
+        import django_litestream_vfs
+        print('VFS import OK')
         import sqlite3
         conn = sqlite3.connect(':memory:')
         conn.enable_load_extension(True)
