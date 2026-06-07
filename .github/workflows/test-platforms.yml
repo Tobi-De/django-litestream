@@ -1,13 +1,9 @@
 name: Test binary wheels on supported platforms
 
 on:
+  push:
+    branches: [main]
   pull_request:
-    paths:
-      - 'scripts/build_binaries.py'
-      - 'src/django_litestream/**'
-      - 'pyproject.toml'
-      - 'django_litestream_vfs/**'
-      - '.github/workflows/test-platforms.yml'
   workflow_dispatch:
 
 jobs:
