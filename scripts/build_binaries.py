@@ -160,6 +160,13 @@ def _build_wheel_from_pure(
         info = zipfile.ZipInfo(script_path)
         info.external_attr = 0o100777 << 16
         dest.writestr(info, script_data)
+
+        # Directory entries auto-created by zipfile — must be in RECORD
+        for dir_path in (f"{data_dir}/", f"{data_dir}/scripts/"):
+            dir_info = zipfile.ZipInfo(dir_path)
+            dir_info.external_attr = 0o40755 << 16  # drwxr-xr-x
+            dest.writestr(dir_info, b"")
+            records.append((dir_path, b""))
         records.append((script_path, script_data))
 
         record_body = "\n".join(_record_entry(name, data) for name, data in records)

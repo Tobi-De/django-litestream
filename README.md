@@ -7,7 +7,7 @@
 
 Django integration for [Litestream](https://litestream.io), the SQLite replication tool. The Litestream binary is bundled in platform-specific wheels — no manual download needed. All upstream commands are available as `python manage.py litestream <command>`.
 
-> **Note:** This package tracks Litestream's upstream version. The initial release is **0.5.11**, matching Litestream v0.5.11. Wrapper-only fixes (no Litestream update) use [PEP 440 post-releases](https://peps.python.org/pep-0440/#post-releases) like `0.5.11.post1`. Binary packages (`django-litestream-bin`, `django-litestream-vfs`) only change when the bundled Litestream binary updates.
+> **Note:** This package tracks Litestream's upstream version. The initial release is **0.5.11**, matching Litestream v0.5.11. Wrapper-only fixes (no Litestream update) use [PEP 440 post-releases](https://peps.python.org/pep-0440/#post-releases) like `0.5.11.post1`.
 
 ## Installation
 
