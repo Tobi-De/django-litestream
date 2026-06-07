@@ -9,4 +9,10 @@ description = "Litestream VFS SQLite extension for django-litestream read-replic
 license = "MIT"
 requires-python = ">=3.12"
 
+classifiers = [
+  "Programming Language :: Python :: 3 :: Only",
+  "Programming Language :: Python :: 3.12",
+  "Programming Language :: Python :: 3.13",
+  "Programming Language :: Python :: 3.14",
+]
 dependencies = [ "django-litestream==0.5.11" ]

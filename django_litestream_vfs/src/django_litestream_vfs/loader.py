@@ -39,8 +39,7 @@ def ensure_vfs_loaded() -> None:
             conn.close()
         except Exception as e:
             raise RuntimeError(
-                f"Failed to load Litestream VFS extension from {vfs_path}. "
-                f"Error: {e}"
+                f"Failed to load Litestream VFS extension from {vfs_path}. Error: {e}"
             ) from e
 
         _vfs_loaded = True

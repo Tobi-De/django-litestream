@@ -4,12 +4,22 @@ All notable changes to this project will be documented in this file.
 
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [unreleased]
+
+### 🚀 Features
+
+- Create GitHub release on tag push
+
 ## [0.5.11] - 2026-06-06
 
 ### 🚀 Features
 
 - Update to Litestream v0.5.11 and add missing upstream commands
 - Install vfs via extra
+
+### 🐛 Bug Fixes
+
+- Remove unsupported armv6/armv7 tags, add RECORD SHA256 hashes
 
 ### ⚙️ Miscellaneous Tasks
 

@@ -196,7 +196,9 @@ def test_parse_daemon_args_with_db_path():
     """Test daemon args parsing with a db_path positional."""
     cmd = Command()
 
-    with patch("django_litestream.management.commands.litestream.settings") as mock_settings:
+    with patch(
+        "django_litestream.management.commands.litestream.settings"
+    ) as mock_settings:
         mock_settings.DATABASES = {}
         with patch.object(cmd, "stdout"):
             args = cmd.parse_daemon_args(
@@ -238,6 +240,7 @@ def test_handle_missing_binary(tmp_path):
     cmd = Command()
     with override_settings(LITESTREAM={"bin_path": str(tmp_path / "nonexistent")}):
         import pytest
+
         with pytest.raises(FileNotFoundError, match="Litestream binary not found"):
             cmd.handle(subcommand="config")
 
@@ -245,7 +248,15 @@ def test_handle_missing_binary(tmp_path):
 def test_litestream_command_coverage():
     """Test that LITESTREAM_COMMANDS includes all expected upstream commands."""
     expected = {
-        "databases", "ltx", "mcp", "replicate", "restore",
-        "status", "sync", "version", "wal", "reset",
+        "databases",
+        "ltx",
+        "mcp",
+        "replicate",
+        "restore",
+        "status",
+        "sync",
+        "version",
+        "wal",
+        "reset",
     }
     assert set(LITESTREAM_COMMANDS.keys()) == expected

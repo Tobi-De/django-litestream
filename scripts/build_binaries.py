@@ -31,7 +31,14 @@ DIST_DIR = REPO_ROOT / "dist"
 
 
 def _read_litestream_version() -> str:
-    source = REPO_ROOT / "src" / "django_litestream" / "management" / "commands" / "litestream.py"
+    source = (
+        REPO_ROOT
+        / "src"
+        / "django_litestream"
+        / "management"
+        / "commands"
+        / "litestream.py"
+    )
     content = source.read_text()
     match = re.search(r'^LITESTREAM_VERSION\s*=\s*"([^"]+)"', content, re.MULTILINE)
     if not match:
@@ -95,9 +102,7 @@ def _extract_from_tar(data: bytes, name_match: str) -> bytes:
                 candidates.append(member)
 
         if not candidates:
-            raise RuntimeError(
-                f"Could not find file named '{name_match}' in archive"
-            )
+            raise RuntimeError(f"Could not find file named '{name_match}' in archive")
 
         member = candidates[0]
         extracted = tf.extractfile(member)
@@ -112,7 +117,9 @@ def _extract_from_tar(data: bytes, name_match: str) -> bytes:
 
 
 def _record_entry(filename: str, data: bytes) -> str:
-    digest = base64.urlsafe_b64encode(hashlib.sha256(data).digest()).rstrip(b"=").decode()
+    digest = (
+        base64.urlsafe_b64encode(hashlib.sha256(data).digest()).rstrip(b"=").decode()
+    )
     return f"{filename},sha256={digest},{len(data)}"
 
 
@@ -133,13 +140,15 @@ def _make_metadata(name: str, version: str, summary: str, license_text: str) -> 
 
 
 def _make_wheel_metadata(platform_tag: str) -> str:
-    return "\n".join([
-        "Wheel-Version: 1.0",
-        "Generator: build_binaries.py",
-        "Root-Is-Purelib: false",
-        f"Tag: py3-none-{platform_tag}",
-        "",
-    ])
+    return "\n".join(
+        [
+            "Wheel-Version: 1.0",
+            "Generator: build_binaries.py",
+            "Root-Is-Purelib: false",
+            f"Tag: py3-none-{platform_tag}",
+            "",
+        ]
+    )
 
 
 # ---------------------------------------------------------------------------
@@ -179,13 +188,15 @@ def _build_wheel(
         zf.writestr(f"{dist_info_dir}/METADATA", metadata_bytes)
         zf.writestr(f"{dist_info_dir}/WHEEL", wheel_bytes)
 
-        record_body = "\n".join([
-            _record_entry(script_path, script_data),
-            _record_entry(f"{dist_info_dir}/METADATA", metadata_bytes),
-            _record_entry(f"{dist_info_dir}/WHEEL", wheel_bytes),
-            f"{dist_info_dir}/RECORD,,",
-            "",
-        ])
+        record_body = "\n".join(
+            [
+                _record_entry(script_path, script_data),
+                _record_entry(f"{dist_info_dir}/METADATA", metadata_bytes),
+                _record_entry(f"{dist_info_dir}/WHEEL", wheel_bytes),
+                f"{dist_info_dir}/RECORD,,",
+                "",
+            ]
+        )
         zf.writestr(f"{dist_info_dir}/RECORD", record_body)
 
     return output_path
@@ -222,7 +233,9 @@ def _build_wheel_from_pure(
 
             if item.filename.endswith(".dist-info/WHEEL"):
                 content = data.decode("utf-8")
-                content = content.replace("Root-Is-Purelib: true", "Root-Is-Purelib: false")
+                content = content.replace(
+                    "Root-Is-Purelib: true", "Root-Is-Purelib: false"
+                )
                 tag_line = f"Tag: py3-none-{platform_tag}"
                 if "Tag:" in content:
                     content = re.sub(r"Tag:.*", tag_line, content)
@@ -234,10 +247,14 @@ def _build_wheel_from_pure(
             records.append((item.filename, data))
 
             if ".dist-info/" in item.filename and dist_info is None:
-                dist_info = item.filename[: item.filename.index(".dist-info/") + len(".dist-info")]
+                dist_info = item.filename[
+                    : item.filename.index(".dist-info/") + len(".dist-info")
+                ]
 
         if dist_info is None:
-            raise RuntimeError("Could not determine .dist-info directory from pure wheel")
+            raise RuntimeError(
+                "Could not determine .dist-info directory from pure wheel"
+            )
 
         dist_prefix = dist_info.rsplit(".dist-info", 1)[0]
         data_dir = f"{dist_prefix}.data"
@@ -250,8 +267,7 @@ def _build_wheel_from_pure(
         records.append((script_path, script_data))
 
         record_body = "\n".join(
-            _record_entry(filename, filedata)
-            for filename, filedata in records
+            _record_entry(filename, filedata) for filename, filedata in records
         )
         record_body += f"\n{dist_info_dir}/RECORD,,\n"
 
@@ -312,9 +328,15 @@ def build_vfs_wheels() -> list[Path]:
 
 
 def main() -> None:
-    parser = argparse.ArgumentParser(description="Build platform-specific binary wheels")
-    parser.add_argument("--no-bin", action="store_true", help="Skip django-litestream platform wheels")
-    parser.add_argument("--no-vfs", action="store_true", help="Skip django-litestream-vfs wheels")
+    parser = argparse.ArgumentParser(
+        description="Build platform-specific binary wheels"
+    )
+    parser.add_argument(
+        "--no-bin", action="store_true", help="Skip django-litestream platform wheels"
+    )
+    parser.add_argument(
+        "--no-vfs", action="store_true", help="Skip django-litestream-vfs wheels"
+    )
     args = parser.parse_args()
 
     print(f"django-litestream binary builder (version: {VERSION})")

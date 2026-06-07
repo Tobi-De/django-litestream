@@ -1,4 +1,4 @@
-set dotenv-load := true
+set dotenv-load
 
 # List all available commands
 _default:
