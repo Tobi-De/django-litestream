@@ -224,7 +224,7 @@ class TestDatabaseWrapper:
         )
 
         with patch(
-            "django_litestream_vfs.backends.sqlite_vfs.ensure_vfs_loaded"
+            "django_litestream_vfs.backends.sqlite_vfs.base.ensure_vfs_loaded"
         ) as mock_load:
             with patch.object(wrapper, "get_connection_params", return_value={}):
                 with patch(
@@ -249,7 +249,7 @@ class TestDatabaseWrapper:
             }
         )
 
-        with patch("django_litestream_vfs.backends.sqlite_vfs.ensure_vfs_loaded"):
+        with patch("django_litestream_vfs.backends.sqlite_vfs.base.ensure_vfs_loaded"):
             with patch.object(wrapper, "get_connection_params", return_value={}):
                 with patch(
                     "django.db.backends.sqlite3.base.DatabaseWrapper.get_new_connection",
