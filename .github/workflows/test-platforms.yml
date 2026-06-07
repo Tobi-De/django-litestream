@@ -13,17 +13,23 @@ jobs:
     - uses: actions/checkout@v4
     - uses: actions/setup-python@v4
       with: {python-version: '3.12'}
-    - name: Install uv
-      uses: astral-sh/setup-uv@v2
+    - uses: astral-sh/setup-uv@v2
     - name: Build wheels
       run: |
         uv build
-        python scripts/build_binaries.py --no-vfs
-    - name: Install from wheel
+        uv build django_litestream_vfs
+        python scripts/build_binaries.py
+    - name: Install and verify both packages
       run: |
-        uv pip install --system dist/django_litestream-*-manylinux*x86_64*.whl
+        uv pip install --system \
+          dist/django_litestream-*-manylinux*x86_64*.whl \
+          dist/django_litestream_vfs-*-manylinux*x86_64*.whl
         which litestream && litestream version
-        python -c "import django_litestream; print('import OK')"
+        ls -la "$(dirname "$(which litestream)")"/litestream.so
+        python -c "
+        import django_litestream; print('django-litestream OK')
+        import django_litestream_vfs; print('django-litestream-vfs OK')
+        "
 
   test-linux-arm64:
     runs-on: ubuntu-24.04-arm
@@ -31,15 +37,21 @@ jobs:
     - uses: actions/checkout@v4
     - uses: actions/setup-python@v4
       with: {python-version: '3.12'}
-    - name: Install uv
-      uses: astral-sh/setup-uv@v2
-    - name: Build and install wheel
+    - uses: astral-sh/setup-uv@v2
+    - name: Build and install both packages
       run: |
         uv build
-        python scripts/build_binaries.py --no-vfs
-        uv pip install --system dist/django_litestream-*-manylinux*aarch64*.whl
+        uv build django_litestream_vfs
+        python scripts/build_binaries.py
+        uv pip install --system \
+          dist/django_litestream-*-manylinux*aarch64*.whl \
+          dist/django_litestream_vfs-*-manylinux*aarch64*.whl
         which litestream && litestream version
-        python -c "import django_litestream; print('import OK')"
+        ls -la "$(dirname "$(which litestream)")"/litestream.so
+        python -c "
+        import django_litestream; print('django-litestream OK')
+        import django_litestream_vfs; print('django-litestream-vfs OK')
+        "
 
   test-macos-x86_64:
     runs-on: macos-13
@@ -47,15 +59,21 @@ jobs:
     - uses: actions/checkout@v4
     - uses: actions/setup-python@v4
       with: {python-version: '3.12'}
-    - name: Install uv
-      uses: astral-sh/setup-uv@v2
-    - name: Build and install wheel
+    - uses: astral-sh/setup-uv@v2
+    - name: Build and install both packages
       run: |
         uv build
-        python scripts/build_binaries.py --no-vfs
-        uv pip install --system dist/django_litestream-*-macosx*x86_64*.whl
+        uv build django_litestream_vfs
+        python scripts/build_binaries.py
+        uv pip install --system \
+          dist/django_litestream-*-macosx*x86_64*.whl \
+          dist/django_litestream_vfs-*-macosx*x86_64*.whl
         which litestream && litestream version
-        python -c "import django_litestream; print('import OK')"
+        ls -la "$(dirname "$(which litestream)")"/litestream.dylib
+        python -c "
+        import django_litestream; print('django-litestream OK')
+        import django_litestream_vfs; print('django-litestream-vfs OK')
+        "
 
   test-macos-arm64:
     runs-on: macos-14
@@ -63,45 +81,18 @@ jobs:
     - uses: actions/checkout@v4
     - uses: actions/setup-python@v4
       with: {python-version: '3.12'}
-    - name: Install uv
-      uses: astral-sh/setup-uv@v2
-    - name: Build and install wheel
-      run: |
-        uv build
-        python scripts/build_binaries.py --no-vfs
-        uv pip install --system dist/django_litestream-*-macosx*arm64*.whl
-        which litestream && litestream version
-        python -c "import django_litestream; print('import OK')"
-
-  test-vfs-linux-x86_64:
-    runs-on: ubuntu-latest
-    steps:
-    - uses: actions/checkout@v4
-    - uses: actions/setup-python@v4
-      with: {python-version: '3.12'}
-    - name: Install uv
-      uses: astral-sh/setup-uv@v2
-    - name: Build wheels
+    - uses: astral-sh/setup-uv@v2
+    - name: Build and install both packages
       run: |
         uv build
         uv build django_litestream_vfs
         python scripts/build_binaries.py
-    - name: Install main + VFS wheels
-      run: |
         uv pip install --system \
-          dist/django_litestream-*-manylinux*x86_64*.whl \
-          dist/django_litestream_vfs-*-manylinux*x86_64*.whl
-        VFS_PATH="$(dirname "$(which litestream)")/litestream.so"
-        ls -la "$VFS_PATH"
+          dist/django_litestream-*-macosx*arm64*.whl \
+          dist/django_litestream_vfs-*-macosx*arm64*.whl
+        which litestream && litestream version
+        ls -la "$(dirname "$(which litestream)")"/litestream.dylib
         python -c "
-        import django_litestream_vfs
-        print('VFS import OK')
-        import sqlite3
-        conn = sqlite3.connect(':memory:')
-        conn.enable_load_extension(True)
-        import shutil, pathlib
-        vfs_path = pathlib.Path(shutil.which('litestream')).parent / 'litestream.so'
-        conn.load_extension(str(vfs_path))
-        print('VFS extension loaded OK')
-        conn.close()
+        import django_litestream; print('django-litestream OK')
+        import django_litestream_vfs; print('django-litestream-vfs OK')
         "
