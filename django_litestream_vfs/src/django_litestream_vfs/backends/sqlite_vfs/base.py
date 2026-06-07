@@ -1,7 +1,3 @@
-# SPDX-FileCopyrightText: 2024-present Tobi DEGNON <tobidegnon@proton.me>
-#
-# SPDX-License-Identifier: MIT
-
 """
 Django database backend for Litestream VFS read replicas.
 
@@ -16,25 +12,23 @@ How it works -- a backend for each DATABASES entry configured by get_vfs_databas
         },
     }
 
-When Django opens this connection, get_new_connection() does three things:
+When Django opens this connection:
 
 1. ensure_vfs_loaded()
-   Loads the litestream.so shared library once per process (thread-safe).
-   This registers a custom SQLite VFS handler named "litestream" globally.
+   Loads the litestream.so shared library once per process.
+   Registers a custom SQLite VFS handler named "litestream" globally.
 
 2. Sets os.environ["LITESTREAM_REPLICA_URL"]
-   The VFS handler reads this env var at connection-open time to know where
-   the cloud replica lives (S3, GCS, Azure Blob). Because the VFS handler is
-   loaded inside the current process, it reads env vars from os.environ
-   directly -- this is the sanctioned way to pass the replica URL at runtime.
+   The C VFS handler reads this env var at connection-open time to know
+   where the cloud replica lives. This is the sanctioned way to pass
+   the replica URL at runtime (the handler runs in-process).
 
-3. Delegates to Django's SQLite backend
-   The NAME includes "?vfs=litestream&mode=ro", so SQLite routes all I/O
-   through the custom VFS handler. Pages are fetched on-demand from cloud
-   storage and cached in memory. Writes return errors (mode=ro).
+3. Opens "file:...?vfs=litestream&mode=ro"
+   SQLite routes all I/O through the custom VFS handler. Pages are
+   fetched on-demand from cloud storage. Writes return errors (read-only).
 
-The result: User.objects.using("prod_replica").all() reads directly from
-cloud storage with no local database file and no download step.
+Result: User.objects.using("prod_replica").all() reads from cloud storage
+with no local database file and no download step.
 """
 
 from __future__ import annotations

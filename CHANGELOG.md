@@ -8,7 +8,21 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### 🐛 Bug Fixes
 
+- Add --no-vfs to platform tests, verify vfs import
+
+### ⚙️ Miscellaneous Tasks
+
+- Simplified platform tests
+
+## [0.5.11.post1] - 2026-06-07
+
+### 🐛 Bug Fixes
+
 - Vfs package not importable
+- Vfs platform wheels include python code, bump-post recipe
+- Build VFS pure wheel before binaries in publish workflow
+- Add data/ directory entries to RECORD
+- Vfs platform wheels include python code, use ~= pin, bump-vfs-together
 
 ### 🧪 Testing
 
