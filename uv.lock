@@ -161,7 +161,7 @@ wheels = [
 
 [[package]]
 name = "django-litestream"
-version = "0.5.11.post6"
+version = "0.5.12"
 source = { editable = "." }
 dependencies = [
     { name = "django" },
@@ -205,14 +205,14 @@ docs = [
 
 [[package]]
 name = "django-litestream-vfs"
-version = "0.5.11.post6"
+version = "0.5.12"
 source = { directory = "django_litestream_vfs" }
 dependencies = [
     { name = "django-litestream" },
 ]
 
 [package.metadata]
-requires-dist = [{ name = "django-litestream", specifier = "~=0.5.11" }]
+requires-dist = [{ name = "django-litestream", specifier = "~=0.5.12" }]
 
 [[package]]
 name = "docutils"

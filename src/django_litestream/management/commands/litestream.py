@@ -22,7 +22,7 @@ if TYPE_CHECKING:
     from argparse import ArgumentParser
 
 
-LITESTREAM_VERSION = "0.5.11"
+LITESTREAM_VERSION = "0.5.12"
 
 LITESTREAM_COMMANDS = {
     "databases": {
@@ -146,6 +146,12 @@ LITESTREAM_COMMANDS = {
                 "name": "-f",
                 "action": "store_true",
                 "help": "Follow mode: continuously restore/follow the database.",
+                "required": False,
+            },
+            {
+                "name": "-dry-run",
+                "action": "store_true",
+                "help": "Print actions without performing them.",
                 "required": False,
             },
         ],

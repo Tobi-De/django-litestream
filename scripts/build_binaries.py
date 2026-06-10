@@ -52,6 +52,8 @@ LITESTREAM_TARGETS: list[tuple[str, str]] = [
     ("linux-arm64", "manylinux2014_aarch64.musllinux_1_1_aarch64"),
     ("darwin-arm64", "macosx_11_0_arm64"),
     ("darwin-x86_64", "macosx_10_9_x86_64"),
+    ("windows-x86_64", "win_amd64"),
+    ("windows-arm64", "win_arm64"),
 ]
 
 VFS_TARGETS: list[tuple[str, str]] = [
@@ -63,7 +65,12 @@ VFS_TARGETS: list[tuple[str, str]] = [
 
 
 def _litestream_url(system: str, arch: str) -> str:
-    return f"{UPSTREAM_REPO}/releases/download/v{VERSION}/litestream-{VERSION}-{system}-{arch}.tar.gz"
+    ext = "zip" if system == "windows" else "tar.gz"
+    return f"{UPSTREAM_REPO}/releases/download/v{VERSION}/litestream-{VERSION}-{system}-{arch}.{ext}"
+
+
+def _litestream_binary_name(system: str) -> str:
+    return "litestream.exe" if system == "windows" else "litestream"
 
 
 def _vfs_url(system: str, arch: str) -> str:
@@ -74,6 +81,18 @@ def _vfs_url(system: str, arch: str) -> str:
 def _parse_target(target: str) -> tuple[str, str]:
     system, arch = target.split("-", 1)
     return system, arch
+
+
+def _extract_from_zip(data: bytes, name_match: str) -> bytes:
+    with zipfile.ZipFile(io.BytesIO(data)) as zf:
+        candidates = [
+            m
+            for m in zf.infolist()
+            if not m.is_dir() and Path(m.filename).name == name_match
+        ]
+        if not candidates:
+            raise RuntimeError(f"Could not find file named '{name_match}' in zip archive")
+        return zf.read(candidates[0])
 
 
 def _extract_from_tar(data: bytes, name_match: str) -> bytes:
@@ -183,6 +202,12 @@ def _build_wheel_from_pure(
 # ---------------------------------------------------------------------------
 
 
+def _extract_archive(data: bytes, name_match: str, is_zip: bool) -> bytes:
+    if is_zip:
+        return _extract_from_zip(data, name_match)
+    return _extract_from_tar(data, name_match)
+
+
 def build_litestream_wheels(pure_wheel: Path) -> list[Path]:
     built = []
     for target, platform_tag in LITESTREAM_TARGETS:
@@ -191,9 +216,10 @@ def build_litestream_wheels(pure_wheel: Path) -> list[Path]:
         print(f"  [{target}] Downloading {url} ...")
         with urllib.request.urlopen(url) as resp:
             data = resp.read()
-        binary = _extract_from_tar(data, "litestream")
+        binary_name = _litestream_binary_name(system)
+        binary = _extract_archive(data, binary_name, system == "windows")
         print(f"  [{target}] Building wheel for {platform_tag} ...")
-        wheel = _build_wheel_from_pure(pure_wheel, platform_tag, "litestream", binary)
+        wheel = _build_wheel_from_pure(pure_wheel, platform_tag, binary_name, binary)
         print(f"  [{target}] -> {wheel.name}")
         built.append(wheel)
     return built
