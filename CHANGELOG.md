@@ -8,6 +8,22 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### 🐛 Bug Fixes
 
+- Litestream vfs fix attempt
+
+### ⚙️ Miscellaneous Tasks
+
+- Update to Litestream v0.5.12 (#10)
+
+## [0.5.11.post6] - 2026-06-07
+
+### 🐛 Bug Fixes
+
+- Use SELECT load_extension() to pass correct VFS entry point
+
+## [0.5.11.post5] - 2026-06-07
+
+### 🐛 Bug Fixes
+
 - Use ctypes to load VFS with correct entry point sqlite3_litestreamvfs_init
 
 ## [0.5.11.post4] - 2026-06-07
