@@ -148,6 +148,12 @@ LITESTREAM_COMMANDS = {
                 "help": "Follow mode: continuously restore/follow the database.",
                 "required": False,
             },
+            {
+                "name": "-dry-run",
+                "action": "store_true",
+                "help": "Print actions without performing them.",
+                "required": False,
+            },
         ],
     },
     "status": {
