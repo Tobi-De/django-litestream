@@ -65,6 +65,7 @@ class TestEnsureVfsLoaded:
         fake_so.write_bytes(b"\x7fELF")
 
         mock_conn = MagicMock()
+        mock_conn.load_extension.side_effect = TypeError  # force SQL fallback
         with override_settings(LITESTREAM={"vfs_extension_path": str(fake_so)}):
             with patch("sqlite3.connect", return_value=mock_conn):
                 loader.ensure_vfs_loaded()
@@ -80,11 +81,13 @@ class TestEnsureVfsLoaded:
         fake_so.write_bytes(b"\x7fELF")
 
         mock_conn = MagicMock()
+        mock_conn.load_extension.side_effect = TypeError
         with override_settings(LITESTREAM={"vfs_extension_path": str(fake_so)}):
             with patch("sqlite3.connect", return_value=mock_conn):
                 loader.ensure_vfs_loaded()
                 loader.ensure_vfs_loaded()
         assert mock_conn.execute.call_count == 1
+        assert loader._vfs_loaded is True
 
     def test_raises_runtime_error_on_load_failure(self, tmp_path):
         from django_litestream_vfs import loader
@@ -94,6 +97,7 @@ class TestEnsureVfsLoaded:
         fake_so.write_bytes(b"\x7fELF")
 
         mock_conn = MagicMock()
+        mock_conn.load_extension.side_effect = TypeError
         mock_conn.execute.side_effect = sqlite3.OperationalError("bad extension")
         with override_settings(LITESTREAM={"vfs_extension_path": str(fake_so)}):
             with patch("sqlite3.connect", return_value=mock_conn):
@@ -110,6 +114,7 @@ class TestEnsureVfsLoaded:
         import concurrent.futures
 
         mock_conn = MagicMock()
+        mock_conn.load_extension.side_effect = TypeError
         with override_settings(LITESTREAM={"vfs_extension_path": str(fake_so)}):
             with patch("sqlite3.connect", return_value=mock_conn):
                 with concurrent.futures.ThreadPoolExecutor(max_workers=4) as ex:

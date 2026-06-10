@@ -15,16 +15,11 @@ _vfs_load_lock = threading.Lock()
 
 def ensure_vfs_loaded() -> None:
     """
-    Load the Litestream VFS extension into the SQLite library.
+    Load the Litestream VFS extension with the correct entry point.
 
-    Python's conn.load_extension() hardcodes the entry point as
-    "sqlite3_extension_init", but litestream-vfs uses the custom
-    entry point "sqlite3_litestreamvfs_init". We use SQLite's
-    built-in load_extension() SQL function instead, which accepts
-    the entry point name as a parameter.
-
-    The VFS handler is registered globally for all SQLite connections
-    in this process. Once loaded, opening with ?vfs=litestream works.
+    Uses Python's load_extension(entrypoint=...) API (3.12+) and
+    falls back to SELECT load_extension() SQL function for older
+    Python versions.
     """
     global _vfs_loaded
 
@@ -47,10 +42,15 @@ def ensure_vfs_loaded() -> None:
         try:
             conn = sqlite3.connect(":memory:")
             conn.enable_load_extension(True)
-            conn.execute(
-                "SELECT load_extension(?, ?)",
-                [str(vfs_path), "sqlite3_litestreamvfs_init"],
-            )
+            try:
+                conn.load_extension(
+                    str(vfs_path), entrypoint="sqlite3_litestreamvfs_init"
+                )
+            except TypeError:
+                conn.execute(
+                    "SELECT load_extension(?, ?)",
+                    [str(vfs_path), "sqlite3_litestreamvfs_init"],
+                )
             conn.close()
         except Exception as e:
             raise RuntimeError(

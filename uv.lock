@@ -161,7 +161,7 @@ wheels = [
 
 [[package]]
 name = "django-litestream"
-version = "0.5.11.post5"
+version = "0.5.11.post6"
 source = { editable = "." }
 dependencies = [
     { name = "django" },
@@ -205,7 +205,7 @@ docs = [
 
 [[package]]
 name = "django-litestream-vfs"
-version = "0.5.11.post5"
+version = "0.5.11.post6"
 source = { directory = "django_litestream_vfs" }
 dependencies = [
     { name = "django-litestream" },
