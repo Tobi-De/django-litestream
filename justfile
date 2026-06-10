@@ -31,6 +31,23 @@ logchanges *ARGS:
 @docs-serve:
     uv run --group docs sphinx-autobuild docs docs/_build/html  --port 8002 --watch docs --open-browser
 
+# Release the current version (no version bump — for when the version is already set, e.g. by the update-litestream action)
+@release:
+    #!/usr/bin/env bash
+    set -euo pipefail
+    version="$(uvx bump-my-version show current_version)"
+    git fetch --tags origin
+    if git rev-parse "v${version}" >/dev/null 2>&1; then
+        echo "Tag v${version} already exists. Skipping."
+        exit 1
+    fi
+    just logchanges
+    [ -z "$(git status --porcelain)" ] && { echo "No changes to commit."; git push; exit 0; }
+    git add -A
+    git commit -m "Generate changelog for version ${version}"
+    git tag -f "v${version}"
+    git push && git push --tags
+
 # Bump project version and update changelog
 bumpver VERSION:
     #!/usr/bin/env bash
