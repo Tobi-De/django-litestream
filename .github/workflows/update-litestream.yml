@@ -56,13 +56,27 @@ jobs:
       if: steps.check.outputs.needs_update == 'true'
       run: |
         NEW_VERSION="${{ steps.upstream.outputs.version }}"
+
+        # LITESTREAM_VERSION in litestream.py
         find src -name 'litestream.py' -exec sed -i \
           's/LITESTREAM_VERSION = "[^"]*"/LITESTREAM_VERSION = "'"$NEW_VERSION"'"/' {} \;
-        sed -i 's/version = "[^"]*"/version = "'"$NEW_VERSION"'"/' pyproject.toml
-        sed -i 's/current_version = "[^"]*"/current_version = "'"$NEW_VERSION"'"/' pyproject.toml
-        sed -i 's/django-litestream-vfs~=[^"]*/django-litestream-vfs~='"$NEW_VERSION"'"/' pyproject.toml
-        sed -i 's/version = "[^"]*"/version = "'"$NEW_VERSION"'"/' django_litestream_vfs/pyproject.toml
-        sed -i 's/django-litestream~=[^"]*/django-litestream~='"$NEW_VERSION"'"/' django_litestream_vfs/pyproject.toml
+
+        # [project] version (anchored to line start — avoids target-version,
+        # current_version, and bumpversion template vars like version = "{current_version}")
+        sed -i 's/^version = "[^"]*"/version = "'"$NEW_VERSION"'"/' pyproject.toml
+
+        # bumpversion current_version
+        sed -i 's/^current_version = "[^"]*"/current_version = "'"$NEW_VERSION"'"/' pyproject.toml
+
+        # VFS dependency pin — no trailing ", original quote is preserved
+        # ("django-litestream-vfs~=0.5.13" → "django-litestream-vfs~=0.5.14")
+        sed -i 's/django-litestream-vfs~=[^"]*/django-litestream-vfs~='"$NEW_VERSION"'/' pyproject.toml
+
+        # version in django_litestream_vfs/pyproject.toml
+        sed -i 's/^version = "[^"]*"/version = "'"$NEW_VERSION"'"/' django_litestream_vfs/pyproject.toml
+
+        # django-litestream dependency pin
+        sed -i 's/django-litestream~=[^"]*/django-litestream~='"$NEW_VERSION"'/' django_litestream_vfs/pyproject.toml
 
     - name: Create pull request
       if: steps.check.outputs.needs_update == 'true'
