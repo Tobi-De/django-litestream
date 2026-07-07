@@ -4,7 +4,7 @@ requires = [ "uv-build>=0.9.7,<0.10" ]
 
 [project]
 name = "django-litestream"
-version = "0.5.12"
+version = "0.5.13"
 description = "Django integration with litestream, a a standalone streaming replication tool for SQLite."
 readme = "README.md"
 keywords = [
@@ -37,7 +37,7 @@ classifiers = [
   "Programming Language :: Python :: Implementation :: PyPy",
 ]
 dependencies = [ "django>=4.2", "pyyaml" ]
-optional-dependencies.vfs = [ "django-litestream-vfs~=0.5.12" ]
+optional-dependencies.vfs = [ "django-litestream-vfs~=0.5.13" ]
 urls.Documentation = "https://github.com/Tobi-De/django-litestream#readme"
 urls.Issues = "https://github.com/Tobi-De/django-litestream/issues"
 urls.Source = "https://github.com/Tobi-De/django-litestream"
@@ -107,7 +107,7 @@ lint.unfixable = [  ]
 lint.dummy-variable-rgx = "^(_+|(_+[a-zA-Z0-9_]*[a-zA-Z0-9]+?))$"
 
 [tool.bumpversion]
-current_version = "0.5.12"
+current_version = "0.5.13"
 parse = "(?P<major>\\d+)\\.(?P<minor>\\d+)\\.(?P<patch>\\d+)(\\.(?P<post_l>post)(?P<post_n>\\d+))?"
 serialize = [
   "{major}.{minor}.{patch}.{post_l}{post_n}",
