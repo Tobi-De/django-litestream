@@ -22,7 +22,7 @@ if TYPE_CHECKING:
     from argparse import ArgumentParser
 
 
-LITESTREAM_VERSION = "0.5.13"
+LITESTREAM_VERSION = "0.5.14"
 
 LITESTREAM_COMMANDS = {
     "databases": {
