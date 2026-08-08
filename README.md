@@ -149,7 +149,8 @@ Read-only access to cloud-stored replicas without downloading the entire databas
 pip install django-litestream[vfs]
 ```
 
-This installs both `django-litestream` and `django-litestream-vfs` (the VFS extension and Python integration).
+This installs `django-litestream`, the `django-litestream-vfs` Django integration, and the upstream
+[`litestream-vfs`](https://pypi.org/project/litestream-vfs/) package, which bundles the compiled VFS extension.
 
 ### Setup
 
@@ -180,6 +181,9 @@ User.objects.using("prod_replica").all()  # read-only, on-demand page fetch
 ```
 
 VFS replicas are read-only. Only x86_64 and arm64 supported. Multiple storage backends supported (S3, GCS, Azure Blob).
+
+> **Note**: the upstream `litestream-vfs` package currently ships wheels for Python 3.8–3.13.
+> On Python 3.14 the VFS extra will not install until upstream publishes a `cp314` wheel.
 
 ## License
 

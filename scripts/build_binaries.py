@@ -1,14 +1,15 @@
 #!/usr/bin/env python3
-"""Build platform-specific wheels for django-litestream and django-litestream-vfs.
+"""Build platform-specific wheels for django-litestream.
 
-Downloads upstream litestream releases, extracts the binary (and VFS extension),
-clones the pure-Python wheel, and injects the binary into data/scripts/ so that
-pip installs it onto the user's PATH. Outputs platform-tagged wheels to dist/.
+Downloads upstream litestream releases, extracts the binary, clones the
+pure-Python wheel, and injects the binary into data/scripts/ so that pip
+installs it onto the user's PATH. Outputs platform-tagged wheels to dist/.
+
+The VFS extension is no longer bundled here — it ships via the upstream
+`litestream-vfs` PyPI package.
 
 Usage:
-    python scripts/build_binaries.py          # build both
-    python scripts/build_binaries.py --no-bin # only VFS
-    python scripts/build_binaries.py --no-vfs # only main
+    python scripts/build_binaries.py
 """
 
 from __future__ import annotations
@@ -56,13 +57,6 @@ LITESTREAM_TARGETS: list[tuple[str, str]] = [
     ("windows-arm64", "win_arm64"),
 ]
 
-VFS_TARGETS: list[tuple[str, str]] = [
-    ("linux-x86_64", "manylinux2014_x86_64.musllinux_1_1_x86_64"),
-    ("linux-arm64", "manylinux2014_aarch64.musllinux_1_1_aarch64"),
-    ("darwin-arm64", "macosx_11_0_arm64"),
-    ("darwin-x86_64", "macosx_10_9_x86_64"),
-]
-
 
 def _litestream_url(system: str, arch: str) -> str:
     ext = "zip" if system == "windows" else "tar.gz"
@@ -71,11 +65,6 @@ def _litestream_url(system: str, arch: str) -> str:
 
 def _litestream_binary_name(system: str) -> str:
     return "litestream.exe" if system == "windows" else "litestream"
-
-
-def _vfs_url(system: str, arch: str) -> str:
-    vfs_arch = "amd64" if arch == "x86_64" else arch
-    return f"{UPSTREAM_REPO}/releases/download/v{VERSION}/litestream-vfs-v{VERSION}-{system}-{vfs_arch}.tar.gz"
 
 
 def _parse_target(target: str) -> tuple[str, str]:
@@ -225,32 +214,9 @@ def build_litestream_wheels(pure_wheel: Path) -> list[Path]:
     return built
 
 
-def build_vfs_wheels(pure_wheel: Path) -> list[Path]:
-    built = []
-    for target, platform_tag in VFS_TARGETS:
-        system, arch = _parse_target(target)
-        url = _vfs_url(system, arch)
-        print(f"  [vfs:{target}] Downloading {url} ...")
-        with urllib.request.urlopen(url) as resp:
-            data = resp.read()
-        extension_name = "litestream.dylib" if system == "darwin" else "litestream.so"
-        binary = _extract_from_tar(data, extension_name)
-        print(f"  [vfs:{target}] Building wheel for {platform_tag} ...")
-        wheel = _build_wheel_from_pure(pure_wheel, platform_tag, extension_name, binary)
-        print(f"  [vfs:{target}] -> {wheel.name}")
-        built.append(wheel)
-    return built
-
-
 def main() -> None:
     parser = argparse.ArgumentParser(
         description="Build platform-specific binary wheels"
-    )
-    parser.add_argument(
-        "--no-bin", action="store_true", help="Skip django-litestream platform wheels"
-    )
-    parser.add_argument(
-        "--no-vfs", action="store_true", help="Skip django-litestream-vfs wheels"
     )
     args = parser.parse_args()
 
@@ -258,35 +224,16 @@ def main() -> None:
     print(f"Output directory: {DIST_DIR}")
     print()
 
-    if not args.no_bin:
-        pure_wheels = sorted(DIST_DIR.glob("django_litestream-*-py3-none-any.whl"))
-        if not pure_wheels:
-            print("ERROR: No pure-Python wheel found in dist/. Run 'uv build' first.")
-            sys.exit(1)
-        pure_wheel = pure_wheels[-1]
-        print(f"Using pure wheel: {pure_wheel.name}")
-        print()
-        print("=== Building django-litestream platform wheels ===")
-        build_litestream_wheels(pure_wheel)
-        print()
-
-    if not args.no_vfs:
-        vfs_dist = Path("django_litestream_vfs") / "dist"
-        vfs_pure_wheels = sorted(
-            vfs_dist.glob("django_litestream_vfs-*-py3-none-any.whl")
-        )
-        if not vfs_pure_wheels:
-            print(
-                "ERROR: No VFS pure-Python wheel found in django_litestream_vfs/dist/."
-                " Run 'uv build django_litestream_vfs' first."
-            )
-            sys.exit(1)
-        vfs_pure_wheel = vfs_pure_wheels[-1]
-        print(f"Using VFS pure wheel: {vfs_pure_wheel}")
-        print()
-        print("=== Building django-litestream-vfs wheels ===")
-        build_vfs_wheels(vfs_pure_wheel)
-        print()
+    pure_wheels = sorted(DIST_DIR.glob("django_litestream-*-py3-none-any.whl"))
+    if not pure_wheels:
+        print("ERROR: No pure-Python wheel found in dist/. Run 'uv build' first.")
+        sys.exit(1)
+    pure_wheel = pure_wheels[-1]
+    print(f"Using pure wheel: {pure_wheel.name}")
+    print()
+    print("=== Building django-litestream platform wheels ===")
+    build_litestream_wheels(pure_wheel)
+    print()
 
     print("Done.")
 

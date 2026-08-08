@@ -53,14 +53,13 @@ just bumpver patch
 - `AppSettings` dataclass reads from `settings.LITESTREAM`
 - Key settings: `path_prefix`, `bin_path`, `vfs_extension_path`, and all Litestream config options
 - `path_prefix` is prepended to replica paths for multi-project bucket organization
-- `bin_path` defaults to `<venv>/bin/litestream` but is auto-downloaded if missing
+- `bin_path` defaults to `<venv>/bin/litestream`; the binary is bundled in platform wheels (see `scripts/build_binaries.py`) and raises `FileNotFoundError` with install guidance if missing
 
 **Management Command (src/django_litestream/management/commands/litestream.py)**
 - Single Django command that wraps all Litestream subcommands
 - `generate_temp_config()` converts Django settings to temporary YAML config file
 - Database alias resolution: users can specify "default" instead of full paths
 - Auto-generates S3 replica config when not explicitly provided
-- Binary auto-download on first use via `download_binary()`
 - Custom `verify` subcommand (not part of upstream Litestream)
 
 ### Supported Commands
@@ -78,7 +77,6 @@ All upstream Litestream commands plus custom commands:
 | `version` | Prints the binary version |
 | `config` | Show generated Litestream configuration (custom) |
 | `verify` | Verify backup integrity (custom) |
-| `vfs-install` | Download VFS extension (custom) |
 
 ### Configuration Translation
 
@@ -114,16 +112,16 @@ Custom integrity check (inspired by litestream-ruby):
 The VFS feature enables read-only access to database replicas stored in cloud object storage without downloading the entire database file. Pages are fetched on-demand and cached in memory.
 
 **Architecture:**
-- **VFS Extension**: Compiled SQLite extension (.so/.dylib) that registers a custom VFS handler
-- **VFS Loader** (`vfs.py`): Thread-safe module that ensures extension loads exactly once per process
-- **Custom Database Backend**: `django_litestream/db/backends/sqlite_vfs.py` extends Django's SQLite backend
-- **Configuration Helper**: `get_vfs_databases()` in `__init__.py` generates Django database configs
+- **VFS Extension**: Compiled SQLite extension (.so/.dylib) that registers a custom VFS handler; ships via the upstream `litestream-vfs` PyPI package
+- **VFS Loader** (`django_litestream_vfs/loader.py`): Thread-safe module that ensures extension loads exactly once per process
+- **Custom Database Backend**: `django_litestream_vfs/backends/sqlite_vfs/base.py` extends Django's SQLite backend
+- **Configuration Helper**: `get_vfs_databases()` in `django_litestream_vfs/__init__.py` generates Django database configs
 
 **How It Works:**
 1. User calls `get_vfs_databases()` in settings.py to generate VFS database configurations
-2. On Django startup, `AppConfig.ready()` loads the VFS extension once (if VFS databases configured)
+2. When Django opens a VFS database connection, the custom backend calls `ensure_vfs_loaded()`:
    - Uses `ensure_vfs_loaded()` with thread-safe double-checked locking
-   - Auto-downloads extension if missing
+   - Extension path resolved from `litestream_vfs.loadable_path()` (or `LITESTREAM["vfs_extension_path"]`)
    - Registers VFS handler globally for this process
 3. When Django opens a VFS database connection, the custom backend:
    - Calls `ensure_vfs_loaded()` as fallback (no-op if already loaded)
@@ -156,11 +154,10 @@ users = User.objects.using("prod_replica").all()
 ```
 
 **VFS Extension Management:**
-- Extension version hardcoded in `download_vfs_extension()` (currently 0.5.10)
+- Extension binary ships via the upstream [`litestream-vfs`](https://pypi.org/project/litestream-vfs/) PyPI package (bundled as a dependency of `django-litestream-vfs`)
+- Default extension path resolved at runtime via `litestream_vfs.loadable_path()`; override with `LITESTREAM["vfs_extension_path"]`
 - Only supports x86_64 and arm64 architectures (VFS limitation)
-- Default install path: `<venv>/lib/litestream-vfs.so`
-- Auto-downloads on first use (like main litestream binary)
-- Manual install: `python manage.py litestream vfs-install`
+- Upstream `litestream-vfs` wheels cover Python 3.8–3.13; no `cp314` wheel yet
 
 **Key Differences from Regular Replication:**
 - VFS is read-only (writes return errors)
@@ -195,10 +192,9 @@ Litestream config uses environment variables for credentials:
 - Use `-no-expand-env` flag to disable expansion
 
 ### Binary Management
-- Binary version is hardcoded in `download_binary()` (currently 0.5.10)
+- Binary version is `LITESTREAM_VERSION` in `src/django_litestream/management/commands/litestream.py` (currently 0.5.16)
+- `scripts/build_binaries.py` downloads official GitHub release binaries, injects them into platform wheels
 - Supports Linux, macOS, Windows on x86_64, ARM64, ARMv7, ARMv6
-- Downloads from official GitHub releases
-- Extracts from tar.gz (Unix) or zip (Windows)
 - Makes executable on Unix systems
 
 ## Code Style

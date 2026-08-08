@@ -4,7 +4,6 @@
 
 from __future__ import annotations
 
-import platform
 from dataclasses import dataclass
 from pathlib import Path
 
@@ -22,9 +21,9 @@ class VfsSettings(AppSettings):
         custom = self.user_settings.get("vfs_extension_path")
         if custom:
             return Path(custom)
-        system = platform.system().lower()
-        ext = "litestream.dylib" if system == "darwin" else "litestream.so"
-        return self.bin_path.parent / ext
+        from litestream_vfs import loadable_path
+
+        return Path(loadable_path())
 
 
 vfs_settings = VfsSettings()

@@ -78,6 +78,9 @@ jobs:
         # django-litestream dependency pin
         sed -i 's/django-litestream~=[^"]*/django-litestream~='"$NEW_VERSION"'/' django_litestream_vfs/pyproject.toml
 
+        # upstream litestream-vfs dependency pin (tracks litestream version)
+        sed -i 's/litestream-vfs>=0.5.[0-9]*/litestream-vfs>='"$NEW_VERSION"'/' django_litestream_vfs/pyproject.toml
+
     - name: Create pull request
       if: steps.check.outputs.needs_update == 'true'
       uses: peter-evans/create-pull-request@v7

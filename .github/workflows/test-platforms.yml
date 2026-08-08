@@ -23,12 +23,12 @@ jobs:
       run: |
         uv pip install --system \
           dist/django_litestream-*-manylinux*x86_64*.whl \
-          dist/django_litestream_vfs-*-manylinux*x86_64*.whl
+          django_litestream_vfs/dist/django_litestream_vfs-*-py3-none-any.whl
         which litestream && litestream version
-        ls -la "$(dirname "$(which litestream)")"/litestream.so
         python -c "
         import django_litestream; print('django-litestream OK')
         import django_litestream_vfs; print('django-litestream-vfs OK')
+        import litestream_vfs; print('litestream-vfs OK:', litestream_vfs.loadable_path())
         "
 
   test-linux-arm64:
@@ -45,12 +45,12 @@ jobs:
         python scripts/build_binaries.py
         uv pip install --system \
           dist/django_litestream-*-manylinux*aarch64*.whl \
-          dist/django_litestream_vfs-*-manylinux*aarch64*.whl
+          django_litestream_vfs/dist/django_litestream_vfs-*-py3-none-any.whl
         which litestream && litestream version
-        ls -la "$(dirname "$(which litestream)")"/litestream.so
         python -c "
         import django_litestream; print('django-litestream OK')
         import django_litestream_vfs; print('django-litestream-vfs OK')
+        import litestream_vfs; print('litestream-vfs OK:', litestream_vfs.loadable_path())
         "
 
   test-macos-x86_64:
@@ -67,12 +67,12 @@ jobs:
         python scripts/build_binaries.py
         uv pip install --system \
           dist/django_litestream-*-macosx*x86_64*.whl \
-          dist/django_litestream_vfs-*-macosx*x86_64*.whl
+          django_litestream_vfs/dist/django_litestream_vfs-*-py3-none-any.whl
         which litestream && litestream version
-        ls -la "$(dirname "$(which litestream)")"/litestream.dylib
         python -c "
         import django_litestream; print('django-litestream OK')
         import django_litestream_vfs; print('django-litestream-vfs OK')
+        import litestream_vfs; print('litestream-vfs OK:', litestream_vfs.loadable_path())
         "
 
   test-macos-arm64:
@@ -89,10 +89,10 @@ jobs:
         python scripts/build_binaries.py
         uv pip install --system \
           dist/django_litestream-*-macosx*arm64*.whl \
-          dist/django_litestream_vfs-*-macosx*arm64*.whl
+          django_litestream_vfs/dist/django_litestream_vfs-*-py3-none-any.whl
         which litestream && litestream version
-        ls -la "$(dirname "$(which litestream)")"/litestream.dylib
         python -c "
         import django_litestream; print('django-litestream OK')
         import django_litestream_vfs; print('django-litestream-vfs OK')
+        import litestream_vfs; print('litestream-vfs OK:', litestream_vfs.loadable_path())
         "
