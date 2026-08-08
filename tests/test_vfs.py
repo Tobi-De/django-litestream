@@ -1,7 +1,6 @@
 from __future__ import annotations
 
 import os
-import platform
 import sqlite3
 import sys
 from pathlib import Path
@@ -13,17 +12,12 @@ from django.test import override_settings
 
 
 class TestVfsSettings:
-    def test_extension_linux(self):
-        with patch.object(platform, "system", return_value="Linux"):
-            from django_litestream_vfs.conf import VfsSettings
-            expected = Path(sys.executable).parent / "litestream.so"
-            assert VfsSettings().vfs_extension_path == expected
+    def test_extension_defaults_to_upstream_loadable_path(self):
+        from litestream_vfs import loadable_path
 
-    def test_extension_macos(self):
-        with patch.object(platform, "system", return_value="Darwin"):
-            from django_litestream_vfs.conf import VfsSettings
-            expected = Path(sys.executable).parent / "litestream.dylib"
-            assert VfsSettings().vfs_extension_path == expected
+        from django_litestream_vfs.conf import VfsSettings
+
+        assert VfsSettings().vfs_extension_path == Path(loadable_path())
 
     def test_extension_custom(self):
         with override_settings(LITESTREAM={"vfs_extension_path": "/opt/vfs/litestream.so"}):
@@ -39,12 +33,6 @@ class TestVfsSettings:
         with override_settings(LITESTREAM={"bin_path": "/opt/bin/litestream"}):
             from django_litestream_vfs.conf import VfsSettings
             assert VfsSettings().bin_path == Path("/opt/bin/litestream")
-
-    def test_extension_resolves_relative_to_bin(self):
-        with override_settings(LITESTREAM={"bin_path": "/opt/bin/litestream"}):
-            with patch.object(platform, "system", return_value="Linux"):
-                from django_litestream_vfs.conf import VfsSettings
-                assert VfsSettings().vfs_extension_path == Path("/opt/bin/litestream.so")
 
 
 class TestEnsureVfsLoaded:
@@ -179,6 +167,30 @@ class TestDatabaseWrapper:
 
         mock_load.assert_called_once()
         assert os.environ.get("LITESTREAM_REPLICA_URL") == "s3://bucket/db.sqlite3"
+
+    def test_env_var_set_before_extension_load(self):
+        """The extension reads LITESTREAM_REPLICA_URL at init, so the env var
+        must be set before ensure_vfs_loaded() runs."""
+        from django_litestream_vfs.backends.sqlite_vfs import DatabaseWrapper
+
+        os.environ.pop("LITESTREAM_REPLICA_URL", None)
+        wrapper = DatabaseWrapper({
+            "ENGINE": "django_litestream_vfs.backends.sqlite_vfs",
+            "NAME": "file:test.db?vfs=litestream&mode=ro",
+            "OPTIONS": {"uri": True, "litestream_replica_url": "s3://bucket/db.sqlite3"},
+        })
+
+        seen_in_load = {}
+
+        def fake_load():
+            seen_in_load["value"] = os.environ.get("LITESTREAM_REPLICA_URL")
+
+        with patch("django_litestream_vfs.backends.sqlite_vfs.base.ensure_vfs_loaded", side_effect=fake_load):
+            with patch.object(wrapper, "get_connection_params", return_value={}):
+                with patch("django.db.backends.sqlite3.base.DatabaseWrapper.get_new_connection", return_value=MagicMock()):
+                    wrapper.get_new_connection({})
+
+        assert seen_in_load["value"] == "s3://bucket/db.sqlite3"
 
     def test_does_not_set_env_var_when_no_replica_url(self):
         from django_litestream_vfs.backends.sqlite_vfs import DatabaseWrapper

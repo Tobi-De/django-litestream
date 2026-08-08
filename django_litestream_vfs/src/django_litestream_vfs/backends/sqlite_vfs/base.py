@@ -41,13 +41,16 @@ from django.db.backends.sqlite3 import base
 
 class DatabaseWrapper(base.DatabaseWrapper):
     def get_new_connection(self, conn_params):
-        ensure_vfs_loaded()
         replica_url = self.settings_dict.get("OPTIONS", {}).get(
             "litestream_replica_url"
         )
 
         if replica_url:
             os.environ["LITESTREAM_REPLICA_URL"] = replica_url
+
+        # The extension reads LITESTREAM_REPLICA_URL at init time, so it must
+        # be set before the first load.
+        ensure_vfs_loaded()
 
         conn_params.pop("litestream_replica_url", None)
         return super().get_new_connection(conn_params)
