@@ -4,6 +4,19 @@ All notable changes to this project will be documented in this file.
 
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [unreleased]
+
+### 🐛 Bug Fixes
+
+- Harden auto-bump workflow against version-string corruption
+- Remove non-existent mcp command
+
+### ⚙️ Miscellaneous Tasks
+
+- Update to Litestream v0.5.14 (#12)
+- Update to Litestream v0.5.15
+- Sync uv.lock for v0.5.15
+
 ## [0.5.12] - 2026-06-10
 
 ### 🐛 Bug Fixes
