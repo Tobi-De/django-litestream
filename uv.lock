@@ -161,7 +161,7 @@ wheels = [
 
 [[package]]
 name = "django-litestream"
-version = "0.5.15"
+version = "0.5.16"
 source = { editable = "." }
 dependencies = [
     { name = "django" },
@@ -205,14 +205,18 @@ docs = [
 
 [[package]]
 name = "django-litestream-vfs"
-version = "0.5.15"
+version = "0.5.16"
 source = { directory = "django_litestream_vfs" }
 dependencies = [
     { name = "django-litestream" },
+    { name = "litestream-vfs" },
 ]
 
 [package.metadata]
-requires-dist = [{ name = "django-litestream", specifier = "~=0.5.15" }]
+requires-dist = [
+    { name = "django-litestream", specifier = "~=0.5.16" },
+    { name = "litestream-vfs", specifier = ">=0.5.16" },
+]
 
 [[package]]
 name = "docutils"
@@ -269,6 +273,17 @@ dependencies = [
 sdist = { url = "https://files.pythonhosted.org/packages/df/bf/f7da0350254c0ed7c72f3e33cef02e048281fec7ecec5f032d4aac52226b/jinja2-3.1.6.tar.gz", hash = "sha256:0137fb05990d35f1275a587e9aee6d56da821fc83491a0fb838183be43f66d6d", size = 245115, upload-time = "2025-03-05T20:05:02.478Z" }
 wheels = [
     { url = "https://files.pythonhosted.org/packages/62/a1/3d680cbfd5f4b8f15abc1d571870c5fc3e594bb582bc3b64ea099db13e56/jinja2-3.1.6-py3-none-any.whl", hash = "sha256:85ece4451f492d0c13c5dd7c13a64681a86afae63a5f347908daf103ce6d2f67", size = 134899, upload-time = "2025-03-05T20:05:00.369Z" },
+]
+
+[[package]]
+name = "litestream-vfs"
+version = "0.5.16"
+source = { registry = "https://pypi.org/simple" }
+wheels = [
+    { url = "https://files.pythonhosted.org/packages/0f/a7/9a5d98380738ce14ef83b26aec5b38329dad2a2d44bce36ea1e591005419/litestream_vfs-0.5.16-cp38.cp39.cp310.cp311.cp312.cp313-none-macosx_11_0_arm64.whl", hash = "sha256:5b36851e8e887cdc238ebc1c939957491ab469618dc33a18cbf51bee29f232bc", size = 14064772, upload-time = "2026-08-05T13:17:31.724Z" },
+    { url = "https://files.pythonhosted.org/packages/e4/88/4393788b9cab4f99b930ad21999f286bd143779fcd120c472edf75caf3db/litestream_vfs-0.5.16-cp38.cp39.cp310.cp311.cp312.cp313-none-macosx_11_0_x86_64.whl", hash = "sha256:0254985c937cc20f5c9920662f621cccfa0bba7b122f403d953d4b66d52168db", size = 15166992, upload-time = "2026-08-05T13:17:29.389Z" },
+    { url = "https://files.pythonhosted.org/packages/53/aa/8adb822706cfc87291f90e0192a50da2c9268daedbe8555e789943f9648f/litestream_vfs-0.5.16-cp38.cp39.cp310.cp311.cp312.cp313-none-manylinux_2_35_aarch64.whl", hash = "sha256:d1171c791825bcb8b5ac74d8a55fd79459c720c4653efd0a4a002da386d640bf", size = 23616632, upload-time = "2026-08-05T13:17:37.229Z" },
+    { url = "https://files.pythonhosted.org/packages/bf/18/f52055b2b5259cfd3956f982e3874fae8d8e112283347611ee6173f72603/litestream_vfs-0.5.16-cp38.cp39.cp310.cp311.cp312.cp313-none-manylinux_2_35_x86_64.whl", hash = "sha256:3ad8d79647458a85ec155cdbcae8e9c6e80acabf8c68a30abe5506aff62cf12e", size = 25816859, upload-time = "2026-08-05T13:17:33.402Z" },
 ]
 
 [[package]]
