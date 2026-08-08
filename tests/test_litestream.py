@@ -425,7 +425,6 @@ def test_litestream_command_coverage():
     expected = {
         "databases",
         "ltx",
-        "mcp",
         "replicate",
         "restore",
         "status",

@@ -210,10 +210,6 @@ LITESTREAM_COMMANDS = {
             },
         ],
     },
-    "mcp": {
-        "description": "Starts a Litestream MCP server for AI assistant integration",
-        "arguments": [],
-    },
 }
 
 DAEMON_COMMANDS = {
