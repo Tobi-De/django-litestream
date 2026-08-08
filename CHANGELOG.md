@@ -8,6 +8,20 @@ This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.htm
 
 ### 🐛 Bug Fixes
 
+- Set LITESTREAM_REPLICA_URL before loading VFS extension
+
+### 🚜 Refactor
+
+- Use upstream litestream-vfs package for VFS extension
+
+### ⚙️ Miscellaneous Tasks
+
+- Update to Litestream v0.5.16
+
+## [0.5.15] - 2026-08-08
+
+### 🐛 Bug Fixes
+
 - Harden auto-bump workflow against version-string corruption
 - Remove non-existent mcp command
 
