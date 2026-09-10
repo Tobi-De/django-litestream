@@ -161,7 +161,7 @@ wheels = [
 
 [[package]]
 name = "django-litestream"
-version = "0.5.16"
+version = "0.5.17"
 source = { editable = "." }
 dependencies = [
     { name = "django" },
@@ -205,7 +205,7 @@ docs = [
 
 [[package]]
 name = "django-litestream-vfs"
-version = "0.5.16"
+version = "0.5.17"
 source = { directory = "django_litestream_vfs" }
 dependencies = [
     { name = "django-litestream" },
@@ -214,8 +214,8 @@ dependencies = [
 
 [package.metadata]
 requires-dist = [
-    { name = "django-litestream", specifier = "~=0.5.16" },
-    { name = "litestream-vfs", specifier = ">=0.5.16" },
+    { name = "django-litestream", specifier = "~=0.5.17" },
+    { name = "litestream-vfs", specifier = ">=0.5.17" },
 ]
 
 [[package]]
@@ -277,13 +277,13 @@ wheels = [
 
 [[package]]
 name = "litestream-vfs"
-version = "0.5.16"
+version = "0.5.17"
 source = { registry = "https://pypi.org/simple" }
 wheels = [
-    { url = "https://files.pythonhosted.org/packages/0f/a7/9a5d98380738ce14ef83b26aec5b38329dad2a2d44bce36ea1e591005419/litestream_vfs-0.5.16-cp38.cp39.cp310.cp311.cp312.cp313-none-macosx_11_0_arm64.whl", hash = "sha256:5b36851e8e887cdc238ebc1c939957491ab469618dc33a18cbf51bee29f232bc", size = 14064772, upload-time = "2026-08-05T13:17:31.724Z" },
-    { url = "https://files.pythonhosted.org/packages/e4/88/4393788b9cab4f99b930ad21999f286bd143779fcd120c472edf75caf3db/litestream_vfs-0.5.16-cp38.cp39.cp310.cp311.cp312.cp313-none-macosx_11_0_x86_64.whl", hash = "sha256:0254985c937cc20f5c9920662f621cccfa0bba7b122f403d953d4b66d52168db", size = 15166992, upload-time = "2026-08-05T13:17:29.389Z" },
-    { url = "https://files.pythonhosted.org/packages/53/aa/8adb822706cfc87291f90e0192a50da2c9268daedbe8555e789943f9648f/litestream_vfs-0.5.16-cp38.cp39.cp310.cp311.cp312.cp313-none-manylinux_2_35_aarch64.whl", hash = "sha256:d1171c791825bcb8b5ac74d8a55fd79459c720c4653efd0a4a002da386d640bf", size = 23616632, upload-time = "2026-08-05T13:17:37.229Z" },
-    { url = "https://files.pythonhosted.org/packages/bf/18/f52055b2b5259cfd3956f982e3874fae8d8e112283347611ee6173f72603/litestream_vfs-0.5.16-cp38.cp39.cp310.cp311.cp312.cp313-none-manylinux_2_35_x86_64.whl", hash = "sha256:3ad8d79647458a85ec155cdbcae8e9c6e80acabf8c68a30abe5506aff62cf12e", size = 25816859, upload-time = "2026-08-05T13:17:33.402Z" },
+    { url = "https://files.pythonhosted.org/packages/52/7c/a3b98a73645c0f6e66e5a84453bcc8b518e75584cb8ad733f2a0f0220436/litestream_vfs-0.5.17-cp38.cp39.cp310.cp311.cp312.cp313-none-macosx_11_0_arm64.whl", hash = "sha256:7499cd6517487519f8945d82a27f3c5391a64a65fd06a9406b9bda521c2be944", size = 14134374, upload-time = "2026-08-31T22:10:14.64Z" },
+    { url = "https://files.pythonhosted.org/packages/a1/8b/4d44d4fe12d58d5cee7afeb06331bb44893ee8257540217224e34efea24c/litestream_vfs-0.5.17-cp38.cp39.cp310.cp311.cp312.cp313-none-macosx_11_0_x86_64.whl", hash = "sha256:1f560916742616cff897d6c249bc11b78bfc34e54d4176a6de507be2f0597899", size = 15212117, upload-time = "2026-08-31T22:10:06.351Z" },
+    { url = "https://files.pythonhosted.org/packages/24/0d/553c9ebcce3a75c38752f9c6b132df7a41bcd955651e9f53a78abd45a269/litestream_vfs-0.5.17-cp38.cp39.cp310.cp311.cp312.cp313-none-manylinux_2_35_aarch64.whl", hash = "sha256:5ec86065b155c4fe5f85ceaf1aa07534018b6bc5e02a07c2b6f138f3567230ca", size = 23712958, upload-time = "2026-08-31T22:10:15.017Z" },
+    { url = "https://files.pythonhosted.org/packages/6a/7d/cdb61c1cf0176c8500f242044eeabcc5ce1ffe3a50040f5ca4b1f4db403f/litestream_vfs-0.5.17-cp38.cp39.cp310.cp311.cp312.cp313-none-manylinux_2_35_x86_64.whl", hash = "sha256:3d3c69c48331d80124c37a9e7491971888521341736973c620787ed503547593", size = 25885077, upload-time = "2026-08-31T22:10:08.797Z" },
 ]
 
 [[package]]
