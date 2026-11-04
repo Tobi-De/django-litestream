@@ -41,6 +41,10 @@ class AppSettings:
             "snapshot",
             "access-key-id",
             "secret-access-key",
+            "sync-interval",
+            "l0-retention",
+            "l0-retention-check-interval",
+            "retention",
         ]:
             if key in self.user_settings:
                 config[key] = self.user_settings[key]

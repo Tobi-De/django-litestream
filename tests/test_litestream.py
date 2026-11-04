@@ -128,6 +128,27 @@ def test_generate_temp_config_preserves_user_global_keys():
             assert config["logging"] == "debug"
 
 
+def test_generate_temp_config_preserves_replication_tuning_keys():
+    litestream_config = {
+        "dbs": [{"path": "db.sqlite3"}],
+        "sync-interval": "60s",
+        "l0-retention": "10m",
+        "l0-retention-check-interval": "5m",
+        "retention": {"enabled": True},
+    }
+    with override_settings(LITESTREAM=litestream_config):
+        with generate_temp_config() as config_path:
+            with open(config_path) as f:
+                config = load(f, Loader=Loader)
+
+            assert config["sync-interval"] == "60s"
+            assert isinstance(config["sync-interval"], str)
+            assert config["l0-retention"] == "10m"
+            assert config["l0-retention-check-interval"] == "5m"
+            assert config["retention"] == {"enabled": True}
+            assert isinstance(config["retention"], dict)
+
+
 # ---------------------------------------------------------------------------
 # Verify command
 # ---------------------------------------------------------------------------
