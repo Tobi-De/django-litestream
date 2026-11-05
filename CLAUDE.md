@@ -157,7 +157,7 @@ users = User.objects.using("prod_replica").all()
 - Extension binary ships via the upstream [`litestream-vfs`](https://pypi.org/project/litestream-vfs/) PyPI package (bundled as a dependency of `django-litestream-vfs`)
 - Default extension path resolved at runtime via `litestream_vfs.loadable_path()`; override with `LITESTREAM["vfs_extension_path"]`
 - Only supports x86_64 and arm64 architectures (VFS limitation)
-- Upstream `litestream-vfs` wheels cover Python 3.8–3.13; no `cp314` wheel yet
+- Upstream `litestream-vfs` wheels use version-independent `py3-none-<platform>` tags (Python 3.8+, includes 3.14)
 
 **Key Differences from Regular Replication:**
 - VFS is read-only (writes return errors)
@@ -192,7 +192,7 @@ Litestream config uses environment variables for credentials:
 - Use `-no-expand-env` flag to disable expansion
 
 ### Binary Management
-- Binary version is `LITESTREAM_VERSION` in `src/django_litestream/management/commands/litestream.py` (currently 0.5.16)
+- Binary version is `LITESTREAM_VERSION` in `src/django_litestream/management/commands/litestream.py` (currently 0.5.18)
 - `scripts/build_binaries.py` downloads official GitHub release binaries, injects them into platform wheels
 - Supports Linux, macOS, Windows on x86_64, ARM64, ARMv7, ARMv6
 - Makes executable on Unix systems

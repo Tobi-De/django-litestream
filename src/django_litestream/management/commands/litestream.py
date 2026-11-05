@@ -22,7 +22,7 @@ if TYPE_CHECKING:
     from argparse import ArgumentParser
 
 
-LITESTREAM_VERSION = "0.5.17"
+LITESTREAM_VERSION = "0.5.18"
 
 LITESTREAM_COMMANDS = {
     "databases": {
@@ -123,7 +123,7 @@ LITESTREAM_COMMANDS = {
             {
                 "name": "-parallelism",
                 "type": int,
-                "help": "Determines the number of LTX files downloaded in parallel. Defaults to 8.",
+                "help": "Deprecated. Accepted for compatibility but has no effect; logs a warning when set.",
                 "required": False,
             },
             {

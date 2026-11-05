@@ -4,6 +4,7 @@ import shutil
 import sqlite3
 import subprocess
 import sys
+import tomllib
 from pathlib import Path
 from unittest.mock import patch
 
@@ -17,9 +18,16 @@ from django_litestream.management.commands.litestream import (
     Command,
     DAEMON_COMMANDS,
     LITESTREAM_COMMANDS,
+    LITESTREAM_VERSION,
     _db_location_from_alias,
     generate_temp_config,
 )
+
+
+def test_bundled_binary_version_matches_package_version():
+    pyproject = Path(__file__).resolve().parents[1] / "pyproject.toml"
+    version = tomllib.loads(pyproject.read_text())["project"]["version"]
+    assert LITESTREAM_VERSION == version.split(".post")[0]
 
 
 # ---------------------------------------------------------------------------
@@ -135,6 +143,7 @@ def test_generate_temp_config_preserves_replication_tuning_keys():
         "l0-retention": "10m",
         "l0-retention-check-interval": "5m",
         "retention": {"enabled": True},
+        "shutdown-timeout": "45s",
     }
     with override_settings(LITESTREAM=litestream_config):
         with generate_temp_config() as config_path:
@@ -147,6 +156,7 @@ def test_generate_temp_config_preserves_replication_tuning_keys():
             assert config["l0-retention-check-interval"] == "5m"
             assert config["retention"] == {"enabled": True}
             assert isinstance(config["retention"], dict)
+            assert config["shutdown-timeout"] == "45s"
 
 
 # ---------------------------------------------------------------------------

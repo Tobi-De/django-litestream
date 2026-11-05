@@ -45,6 +45,7 @@ class AppSettings:
             "l0-retention",
             "l0-retention-check-interval",
             "retention",
+            "shutdown-timeout",
         ]:
             if key in self.user_settings:
                 config[key] = self.user_settings[key]
