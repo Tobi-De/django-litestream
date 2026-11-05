@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.18.post1] - 2026-11-05
+
+### 🐛 Bug Fixes
+
+- Update to Litestream v0.5.18
+
 ## [0.5.18] - 2026-11-04
 
 ### 🚀 Features
