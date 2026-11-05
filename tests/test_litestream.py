@@ -254,6 +254,170 @@ def test_generate_temp_config_passes_through_unmanaged_paths():
             assert db_config["replica"]["type"] == "s3"
 
 
+# Every yaml key accepted by Litestream v0.5.18's Config/ReplicaSettings.
+UPSTREAM_TOP_LEVEL_OPTIONS = {
+    # Config fields
+    "addr": ":9090",
+    "socket": {"enabled": True, "path": "/var/run/litestream.sock"},
+    "levels": [{"interval": "30s"}],
+    "snapshot": {"interval": "6h", "retention": "168h"},
+    "validation": {"enabled": True, "interval": "1h"},
+    "l0-retention": "10m",
+    "l0-retention-check-interval": "5m",
+    "verify-compaction": True,
+    "retention": {
+        "enabled": True,
+        "interval": "1h",
+        "min-interval": "10m",
+        "max-interval": "24h",
+    },
+    "heartbeat-url": "https://hc.example/ping",
+    "heartbeat-interval": "10s",
+    "exec": "true",
+    "logging": {"level": "info", "type": "text"},
+    "mcp-addr": ":9091",
+    "shutdown-timeout": "45s",
+    "shutdown-sync-timeout": "30s",
+    "shutdown-sync-interval": "1s",
+    # ReplicaSettings fields (inline at top level)
+    "sync-interval": "10s",
+    "validation-interval": "1h",
+    "max-sync-ltx-files": 3,
+    "auto-recover": True,
+    "access-key-id": "$LITESTREAM_ACCESS_KEY_ID",
+    "secret-access-key": "$LITESTREAM_SECRET_ACCESS_KEY",
+    "region": "us-east-1",
+    "bucket": "my-bucket",
+    "endpoint": "http://minio:9000",
+    "force-path-style": True,
+    "sign-payload": False,
+    "sign-accept-encoding": False,
+    "require-content-md5": True,
+    "put-object-content-md5": True,
+    "skip-verify": True,
+    "storage-class": "STANDARD",
+    "part-size": "5MB",
+    "concurrency": 4,
+    "sse-customer-algorithm": "AES256",
+    "sse-customer-key": "customer-key",
+    "sse-customer-key-path": "/tmp/customer.key",
+    "sse-kms-key-id": "kms-key-id",
+    "account-name": "account",
+    "account-key": "account-key",
+    "sas-token": "sas-token",
+    "host": "sftp.example.com",
+    "user": "sftp-user",
+    "password": "sftp-password",
+    "key-path": "/tmp/id_ed25519",
+    "concurrent-writes": True,
+    "host-key": "ssh-ed25519 AAAA",
+    "webdav-url": "https://dav.example.com",
+    "webdav-username": "webdav-user",
+    "webdav-password": "webdav-password",
+    "jwt": "nats-jwt",
+    "seed": "nats-seed",
+    "creds": "/tmp/nats.creds",
+    "nkey": "nats-nkey",
+    "username": "nats-user",
+    "token": "nats-token",
+    "tls": True,
+    "root-cas": "/tmp/root-ca.pem",
+    "client-cert": "/tmp/client.pem",
+    "client-key": "/tmp/client.key",
+    "max-reconnects": 5,
+    "reconnect-wait": "1s",
+    "timeout": "10s",
+    "identities": ["/tmp/identity"],
+    "recipients": ["age1example"],
+    "age": True,
+}
+
+# Every yaml key accepted by Litestream v0.5.18's DBConfig.
+UPSTREAM_DB_OPTIONS = {
+    "pattern": "*.sqlite3",
+    "recursive": True,
+    "watch": True,
+    "snapshot": {"interval": "6h", "retention": "168h"},
+    "meta-path": "/tmp/meta",
+    "meta-dir": "/tmp/meta-dir",
+    "monitor-interval": "5s",
+    "checkpoint-interval": "1m",
+    "busy-timeout": "5s",
+    "min-checkpoint-page-count": 10,
+    "truncate-page-n": 100,
+    "max-sync-wal-bytes": 4096,
+    "restore-if-db-not-exists": True,
+    "replica": {"type": "s3", "bucket": "db-bucket", "path": "db.sqlite3"},
+    "replicas": [
+        {"type": "s3", "bucket": "first", "path": "db.sqlite3"},
+        {"type": "s3", "bucket": "second", "path": "db.sqlite3"},
+    ],
+}
+
+WRAPPER_ONLY_OPTIONS = {
+    "path_prefix": "myproject",
+    "bin_path": "/opt/litestream",
+    "vfs": {"replica_name": "s3://bucket/db.sqlite3"},
+    "vfs_extension_path": "/tmp/litestream-vfs.so",
+}
+
+
+@pytest.mark.parametrize("key,value", UPSTREAM_TOP_LEVEL_OPTIONS.items())
+def test_generate_temp_config_forwards_every_upstream_top_level_option(key, value):
+    litestream_config = {"dbs": [{"path": "db.sqlite3"}], key: value}
+    with override_settings(LITESTREAM=litestream_config):
+        with generate_temp_config() as config_path:
+            with open(config_path) as f:
+                config = load(f, Loader=Loader)
+            assert config[key] == value
+            assert config["dbs"][0]["path"].endswith("db.sqlite3")
+
+
+@pytest.mark.parametrize("key,value", WRAPPER_ONLY_OPTIONS.items())
+def test_generate_temp_config_excludes_every_wrapper_only_option(key, value):
+    litestream_config = {"dbs": [{"path": "db.sqlite3"}], key: value}
+    with override_settings(LITESTREAM=litestream_config):
+        with generate_temp_config() as config_path:
+            with open(config_path) as f:
+                config = load(f, Loader=Loader)
+            assert key not in config
+
+
+@pytest.mark.parametrize("key,value", UPSTREAM_DB_OPTIONS.items())
+def test_generate_temp_config_preserves_every_upstream_db_option(key, value):
+    litestream_config = {"dbs": [{"path": "default", key: value}]}
+    with override_settings(LITESTREAM=litestream_config):
+        with generate_temp_config() as config_path:
+            with open(config_path) as f:
+                config = load(f, Loader=Loader)
+            assert config["dbs"][0][key] == value
+
+
+def test_generate_temp_config_forwards_unknown_keys():
+    litestream_config = {
+        "future-top-level-option": {"nested": 1},
+        "dbs": [{"path": "default", "future-db-option": ["a", 2]}],
+    }
+    with override_settings(LITESTREAM=litestream_config):
+        with generate_temp_config() as config_path:
+            with open(config_path) as f:
+                config = load(f, Loader=Loader)
+            assert config["future-top-level-option"] == {"nested": 1}
+            assert config["dbs"][0]["future-db-option"] == ["a", 2]
+
+
+def test_generate_temp_config_does_not_inject_credentials_with_explicit_replica():
+    replica = {"type": "s3", "bucket": "my-bucket", "path": "db.sqlite3"}
+    litestream_config = {"dbs": [{"path": "default", "replica": replica}]}
+    with override_settings(LITESTREAM=litestream_config):
+        with generate_temp_config() as config_path:
+            with open(config_path) as f:
+                config = load(f, Loader=Loader)
+            assert config["dbs"][0]["replica"] == replica
+            assert "access-key-id" not in config
+            assert "secret-access-key" not in config
+
+
 # ---------------------------------------------------------------------------
 # Verify command
 # ---------------------------------------------------------------------------
