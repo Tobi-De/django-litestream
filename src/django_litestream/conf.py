@@ -9,6 +9,13 @@ from django.conf import settings
 
 DJANGO_LITESTREAM_SETTINGS_NAME = "LITESTREAM"
 
+# Keys consumed by the wrapper itself and therefore never written to the
+# generated Litestream config. Everything else is forwarded verbatim so new
+# upstream options work without a wrapper release.
+WRAPPER_ONLY_SETTINGS = frozenset(
+    {"path_prefix", "bin_path", "vfs", "vfs_extension_path"}
+)
+
 
 @dataclass(frozen=True)
 class AppSettings:
@@ -30,26 +37,11 @@ class AppSettings:
         )
 
     def litestream_settings(self) -> dict[str, object]:
-        config = {}
-        for key in [
-            "dbs",
-            "logging",
-            "addr",
-            "exec",
-            "mcp-addr",
-            "levels",
-            "snapshot",
-            "access-key-id",
-            "secret-access-key",
-            "sync-interval",
-            "l0-retention",
-            "l0-retention-check-interval",
-            "retention",
-            "shutdown-timeout",
-        ]:
-            if key in self.user_settings:
-                config[key] = self.user_settings[key]
-        return config
+        return {
+            key: value
+            for key, value in self.user_settings.items()
+            if key not in WRAPPER_ONLY_SETTINGS
+        }
 
 
 app_settings = AppSettings()

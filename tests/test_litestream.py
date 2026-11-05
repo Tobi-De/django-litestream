@@ -159,6 +159,101 @@ def test_generate_temp_config_preserves_replication_tuning_keys():
             assert config["shutdown-timeout"] == "45s"
 
 
+def test_generate_temp_config_forwards_all_upstream_keys():
+    litestream_config = {
+        "dbs": [{"path": "db.sqlite3"}],
+        "heartbeat-url": "https://hc.example/ping",
+        "socket": {"enabled": False},
+        "verify-compaction": True,
+        "path_prefix": "myproject",
+        "bin_path": "/opt/litestream",
+        "vfs": {"replica": "s3://bucket/db.sqlite3"},
+    }
+    with override_settings(LITESTREAM=litestream_config):
+        with generate_temp_config() as config_path:
+            with open(config_path) as f:
+                config = load(f, Loader=Loader)
+
+            assert config["heartbeat-url"] == "https://hc.example/ping"
+            assert config["socket"] == {"enabled": False}
+            assert config["verify-compaction"] is True
+            assert "path_prefix" not in config
+            assert "bin_path" not in config
+            assert "vfs" not in config
+
+
+def test_generate_temp_config_preserves_per_db_options():
+    litestream_config = {
+        "dbs": [
+            {
+                "path": "default",
+                "snapshot": {"interval": "6h", "retention": "168h"},
+                "monitor-interval": "5s",
+                "truncate-page-n": 1000,
+            }
+        ]
+    }
+    with override_settings(LITESTREAM=litestream_config):
+        with generate_temp_config() as config_path:
+            with open(config_path) as f:
+                config = load(f, Loader=Loader)
+            db_config = config["dbs"][0]
+            assert db_config["snapshot"] == {"interval": "6h", "retention": "168h"}
+            assert db_config["monitor-interval"] == "5s"
+            assert db_config["truncate-page-n"] == 1000
+            assert db_config["replica"]["type"] == "s3"
+
+
+def test_generate_temp_config_keeps_explicit_multiple_replicas():
+    replicas = [
+        {"type": "s3", "bucket": "first", "path": "db.sqlite3"},
+        {"type": "s3", "bucket": "second", "path": "db.sqlite3"},
+    ]
+    litestream_config = {"dbs": [{"path": "default", "replicas": replicas}]}
+    with override_settings(LITESTREAM=litestream_config):
+        with generate_temp_config() as config_path:
+            with open(config_path) as f:
+                config = load(f, Loader=Loader)
+            db_config = config["dbs"][0]
+            assert db_config["replicas"] == replicas
+            assert "replica" not in db_config
+
+
+def test_generate_temp_config_passes_through_directory_entries():
+    litestream_config = {
+        "dbs": [
+            {
+                "dir": "/srv/databases",
+                "pattern": "*.sqlite3",
+                "watch": True,
+                "replica": {"type": "s3", "bucket": "dir-bucket", "path": "dbs"},
+            }
+        ]
+    }
+    with override_settings(LITESTREAM=litestream_config):
+        with generate_temp_config() as config_path:
+            with open(config_path) as f:
+                config = load(f, Loader=Loader)
+            db_config = config["dbs"][0]
+            assert db_config["dir"] == "/srv/databases"
+            assert db_config["pattern"] == "*.sqlite3"
+            assert db_config["watch"] is True
+
+
+def test_generate_temp_config_passes_through_unmanaged_paths():
+    litestream_config = {
+        "dbs": [{"path": "/srv/unmanaged.db", "snapshot": {"interval": "1h"}}]
+    }
+    with override_settings(LITESTREAM=litestream_config):
+        with generate_temp_config() as config_path:
+            with open(config_path) as f:
+                config = load(f, Loader=Loader)
+            db_config = config["dbs"][0]
+            assert db_config["path"] == "/srv/unmanaged.db"
+            assert db_config["snapshot"] == {"interval": "1h"}
+            assert db_config["replica"]["type"] == "s3"
+
+
 # ---------------------------------------------------------------------------
 # Verify command
 # ---------------------------------------------------------------------------

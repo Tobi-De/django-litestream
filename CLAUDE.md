@@ -83,13 +83,15 @@ All upstream Litestream commands plus custom commands:
 The command dynamically generates Litestream config from Django settings:
 
 1. Reads `LITESTREAM` dict from Django settings
-2. Resolves Django database aliases to actual file paths using `settings.DATABASES`
-3. For each database without explicit `replica` config:
+2. Forwards every key except the wrapper-only ones (`path_prefix`, `bin_path`, `vfs`, `vfs_extension_path`) verbatim, so new upstream options need no wrapper change
+3. Resolves Django database aliases to actual file paths using `settings.DATABASES`
+4. Copies each `dbs` entry as-is (per-database `snapshot`, `monitor-interval`, `replicas`, `dir`, etc. are preserved); only `path` is resolved and `dir`/path-less entries pass through untouched
+5. For each database without explicit `replica`/`replicas` config:
    - Auto-generates S3 replica pointing to `$LITESTREAM_REPLICA_BUCKET`
    - Applies `path_prefix` to the replica path
    - Adds global `access-key-id` and `secret-access-key` env var references
-4. Writes YAML to temporary file
-5. Passes config path to Litestream binary via `-config` flag
+6. Writes YAML to temporary file
+7. Passes config path to Litestream binary via `-config` flag
 
 ### Database Alias Resolution
 

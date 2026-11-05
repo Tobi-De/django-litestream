@@ -46,7 +46,7 @@ LITESTREAM = {
 }
 ```
 
-All [Litestream config options](https://litestream.io/reference/config/) are supported (`addr`, `logging`, `mcp-addr`, `access-key-id`, etc.).
+All [Litestream config options](https://litestream.io/reference/config/) are supported (`addr`, `logging`, `mcp-addr`, `access-key-id`, `shutdown-timeout`, etc.) and forwarded verbatim; only `path_prefix`, `bin_path` and `vfs` are consumed by the wrapper.
 
 ### Database aliases
 
@@ -108,6 +108,25 @@ LITESTREAM = {
     ],
 }
 ```
+
+### Per-database options
+
+Every [database-level option](https://litestream.io/reference/config/#database) is passed through untouched; the wrapper only resolves the `path` alias and fills in an S3 replica when neither `replica` nor `replicas` is set:
+
+```python
+LITESTREAM = {
+    "dbs": [
+        {
+            "path": "default",
+            "snapshot": {"interval": "6h", "retention": "168h"},
+            "monitor-interval": "5s",
+            "checkpoint-interval": "1m",
+        },
+    ],
+}
+```
+
+`dir`-based entries (directory watching) are forwarded as-is, so `pattern`, `recursive`, `watch`, `meta-dir`, etc. work too. Durations use Go syntax (`6h`, `168h`, `30m`), not `7d`/`1w`.
 
 ## Custom commands
 

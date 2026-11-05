@@ -595,16 +595,35 @@ def generate_temp_config():
     dbs = config.get("dbs", [])
     processed_dbs = []
     for user_db in dbs:
-        path = _db_location_from_alias(user_db["path"])
-        db_settings = next(
-            (s for s in settings.DATABASES.values() if s["NAME"] == path), None
-        )
-        if not db_settings:
+        # Keep every database-level option the user provided; the wrapper only
+        # resolves `path` aliases and fills in a missing replica.
+        db_conf = dict(user_db)
+        if "dir" in user_db or "path" not in user_db:
+            processed_dbs.append(db_conf)
             continue
-        if db_settings["ENGINE"] != "django.db.backends.sqlite3":
-            continue
-        db_conf = {"path": str(Path(path).resolve())}
-        if "replica" not in user_db:
+
+        raw_path = user_db["path"]
+        alias_settings = settings.DATABASES.get(raw_path)
+        if alias_settings is not None:
+            if alias_settings.get("ENGINE") != "django.db.backends.sqlite3":
+                continue
+            path = alias_settings["NAME"]
+        else:
+            path = raw_path
+            named = next(
+                (
+                    s
+                    for s in settings.DATABASES.values()
+                    if str(s.get("NAME")) == str(path)
+                ),
+                None,
+            )
+            if named is not None and named.get("ENGINE") != (
+                "django.db.backends.sqlite3"
+            ):
+                continue
+        db_conf["path"] = str(Path(path).resolve())
+        if "replica" not in user_db and "replicas" not in user_db:
             # since we are adding replica config, add global credentials too if missing
             if "access-key-id" not in config:
                 config["access-key-id"] = "$LITESTREAM_ACCESS_KEY_ID"
@@ -618,8 +637,6 @@ def generate_temp_config():
                 "bucket": "$LITESTREAM_REPLICA_BUCKET",
                 "path": backup_path,
             }
-        else:
-            db_conf["replica"] = user_db["replica"]
         processed_dbs.append(db_conf)
 
     config["dbs"] = processed_dbs
