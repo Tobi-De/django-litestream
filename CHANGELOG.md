@@ -4,6 +4,12 @@ All notable changes to this project will be documented in this file.
 
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.18.post2] - 2026-11-05
+
+### 🐛 Bug Fixes
+
+- Preserve per-database options and forward all config keys
+
 ## [0.5.18.post1] - 2026-11-05
 
 ### 🐛 Bug Fixes
