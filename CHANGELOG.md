@@ -4,6 +4,25 @@ All notable changes to this project will be documented in this file.
 
 This project adheres to [Semantic Versioning](https://semver.org/spec/v2.0.0.html).
 
+## [0.5.18.post3] - 2026-11-26
+
+### 🐛 Bug Fixes
+
+- *(cli)* Align command flags with Litestream v0.5.18
+- *(vfs)* Pass replica_url per connection instead of a global env var
+
+### 📚 Documentation
+
+- Document daemon socket, restore/ltx flags and per-connection VFS config
+
+### 🧪 Testing
+
+- Cover every Litestream v0.5.18 config key round-trip
+
+### ⚙️ Miscellaneous Tasks
+
+- Install the litestream binary before running tests
+
 ## [0.5.18.post2] - 2026-11-05
 
 ### 🐛 Bug Fixes
