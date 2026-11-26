@@ -73,10 +73,15 @@ All upstream Litestream commands plus custom commands:
 | `replicate` | Runs a server to replicate databases |
 | `restore` | Recovers database backup from a replica |
 | `status` | Show replication status for databases |
-| `sync` | Force immediate WAL-to-LTX sync |
+| `reset` | Reset local Litestream state for a database |
+| `wal` | Deprecated alias of `ltx` |
 | `version` | Prints the binary version |
 | `config` | Show generated Litestream configuration (custom) |
 | `verify` | Verify backup integrity (custom) |
+
+Daemon control commands (`info`, `list`, `register`, `unregister`, `start`, `stop`, `sync`) are defined separately in `DAEMON_COMMANDS`: they talk to a running `replicate` daemon over its control socket and are invoked **without** `-config`, so they must not be added to `LITESTREAM_COMMANDS`.
+
+CLI flags are a hand-maintained mirror of the bundled binary. `tests/test_litestream.py` cross-checks every flag against `litestream <cmd> -h` from the bundled binary (`scripts/install_binary.py` fetches it in CI), so drift fails the build instead of failing at runtime.
 
 ### Configuration Translation
 
@@ -125,11 +130,13 @@ The VFS feature enables read-only access to database replicas stored in cloud ob
    - Uses `ensure_vfs_loaded()` with thread-safe double-checked locking
    - Extension path resolved from `litestream_vfs.loadable_path()` (or `LITESTREAM["vfs_extension_path"]`)
    - Registers VFS handler globally for this process
-3. When Django opens a VFS database connection, the custom backend:
-   - Calls `ensure_vfs_loaded()` as fallback (no-op if already loaded)
-   - Sets `LITESTREAM_REPLICA_URL` environment variable from `OPTIONS['litestream_replica_url']`
-   - Opens the database with `?vfs=litestream&mode=ro` URI parameter
+3. The replica config travels in the connection URI, not in process state:
+   - `get_vfs_databases()` builds `file:<alias>.db?vfs=litestream&mode=ro&replica_url=<urlencoded>`
+   - The backend appends `replica_url` (and any `poll_interval`/`cache_size`/… options) when a hand-written `DATABASES` entry only sets `OPTIONS['litestream_replica_url']`
+   - The extension resolves these per connection (`ParseVFSURIConfig`), so multiple replicas work in one process
 4. SQLite uses the already-registered VFS to fetch pages from cloud storage on-demand
+
+> `LITESTREAM_REPLICA_URL` is still read by the extension, but **only once**, when it is loaded. It is a process-wide default and cannot describe more than one replica — do not use it to switch replicas at runtime.
 
 **Configuration:**
 ```python
@@ -139,7 +146,11 @@ from django_litestream import get_vfs_databases
 LITESTREAM = {
     "vfs": {
         "prod_replica": "s3://mybucket/db.sqlite3",
-        "analytics_replica": "s3://analytics/analytics.db",
+        "analytics_replica": {
+            "url": "s3://analytics/analytics.db",
+            "poll_interval": "5s",   # optional per-connection tuning
+            "cache_size": 33554432,
+        },
     }
 }
 
@@ -149,10 +160,16 @@ DATABASES = {
 }
 ```
 
+Accepted per-alias keys: `write_enabled`, `sync_interval`, `buffer_path`, `hydration_enabled`, `hydration_path`, `poll_interval`, `cache_size` (upstream `vfs_config.go`). They are passed as URI parameters and never leak into `sqlite3.connect()` kwargs.
+
 **Usage:**
 ```python
 # Explicit replica usage with .using()
 users = User.objects.using("prod_replica").all()
+
+# The extension also registers SQL helpers on VFS connections:
+# litestream_time(), litestream_txid(), litestream_lag(),
+# litestream_set_time('<timestamp>') for point-in-time reads.
 ```
 
 **VFS Extension Management:**

@@ -154,11 +154,21 @@ python manage.py litestream verify default
 
 All [Litestream commands](https://litestream.io/reference/) are exposed as management commands. Run `python manage.py litestream` to see the full list. Key notes:
 
-- **`replicate`**: Run in production via a process manager. Use `-exec` to wrap your application server.
-- **`restore`**: Supports `-timestamp`, `-generation`, `-index` for point-in-time recovery.
-- **Daemon control** (`info`, `list`, `register`, `unregister`, `start`, `stop`): Communicate with a running `replicate` daemon over IPC.
+- **`replicate`**: Run in production via a process manager. Use `-exec` to wrap your application server. `-force-snapshot` and `-enforce-retention` require `-once`.
+- **`restore`**: Supports `-timestamp` and `-txid` for point-in-time recovery, `-f` for follow mode (with `-follow-interval`), `-integrity-check` for post-restore verification, and `-json` for machine-readable output.
+- **`ltx`**: Use `-level` with `0-9` or `all`; `-json` for scripting. `wal` is a deprecated alias.
+- **Daemon control** (`info`, `list`, `register`, `unregister`, `start`, `stop`, `sync`): Communicate with a running `replicate` daemon over its control socket. These commands do not read a config file, so the socket must be enabled where the daemon runs:
+
+  ```python
+  LITESTREAM = {
+      "socket": {"enabled": True, "path": "/var/run/litestream.sock"},
+      "dbs": [{"path": "default"}],
+  }
+  ```
 
 The only difference from upstream is that Django database aliases work anywhere `db_path` is expected.
+
+> A database may appear only once in `LITESTREAM["dbs"]`: Litestream rejects duplicate `dbs[].path` values at load time, and aliases are resolved to paths before the config is written.
 
 ## VFS Read Replicas
 
@@ -199,10 +209,28 @@ DATABASES = {
 User.objects.using("prod_replica").all()  # read-only, on-demand page fetch
 ```
 
-VFS replicas are read-only. Only x86_64 and arm64 supported. Multiple storage backends supported (S3, GCS, Azure Blob).
+Each alias is opened with its replica URL in the connection URI, so any number of replicas can be read in one process.
 
-> **Note**: the upstream `litestream-vfs` package currently ships wheels for Python 3.8–3.13.
-> On Python 3.14 the VFS extra will not install until upstream publishes a `cp314` wheel.
+Per-alias tuning is available by using a dict instead of a plain URL:
+
+```python
+LITESTREAM = {
+    "vfs": {
+        "prod_replica": "s3://mybucket/db.sqlite3",
+        "analytics": {
+            "url": "s3://analytics/analytics.db",
+            "poll_interval": "5s",   # how often to look for new LTX files
+            "cache_size": 33554432,  # page cache in bytes
+        },
+    },
+}
+```
+
+The extension also exposes SQL functions on VFS connections: `litestream_time()`, `litestream_txid()`, `litestream_lag()`, and `litestream_set_time(timestamp)` for point-in-time reads.
+
+VFS replicas are read-only. Only x86_64 and arm64 supported. Multiple storage backends supported (S3, GCS, Azure Blob, local files, SFTP, NATS, WebDAV).
+
+> **Note**: the upstream `litestream-vfs` package ships version-independent wheels (`py3-none-*`), so it installs on Python 3.8+ including 3.14.
 
 ## License
 
