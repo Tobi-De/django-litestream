@@ -54,7 +54,9 @@ jobs:
         "
 
   test-macos-x86_64:
-    runs-on: macos-13
+    # macos-13 was retired on 2025-12-04; macos-15-intel is the remaining
+    # standard x86_64 image (available until Aug 2027).
+    runs-on: macos-15-intel
     steps:
     - uses: actions/checkout@v4
     - uses: actions/setup-python@v4
@@ -76,7 +78,8 @@ jobs:
         "
 
   test-macos-arm64:
-    runs-on: macos-14
+    # macos-14 was retired on 2026-11-02; macos-15 is the current arm64 image.
+    runs-on: macos-15
     steps:
     - uses: actions/checkout@v4
     - uses: actions/setup-python@v4
