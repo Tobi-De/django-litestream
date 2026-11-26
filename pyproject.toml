@@ -56,7 +56,7 @@ docs = [
 default-groups = [ "dev" ]
 
 [tool.uv.sources]
-django-litestream-vfs = { path = "django_litestream_vfs" }
+django-litestream-vfs = { path = "django_litestream_vfs", editable = true }
 
 [tool.ruff]
 target-version = "py312"

@@ -188,7 +188,7 @@ docs = [
 [package.metadata]
 requires-dist = [
     { name = "django", specifier = ">=4.2" },
-    { name = "django-litestream-vfs", marker = "extra == 'vfs'", directory = "django_litestream_vfs" },
+    { name = "django-litestream-vfs", marker = "extra == 'vfs'", editable = "django_litestream_vfs" },
     { name = "pyyaml" },
 ]
 provides-extras = ["vfs"]
@@ -206,7 +206,7 @@ docs = [
 [[package]]
 name = "django-litestream-vfs"
 version = "0.5.18.post2"
-source = { directory = "django_litestream_vfs" }
+source = { editable = "django_litestream_vfs" }
 dependencies = [
     { name = "django-litestream" },
     { name = "litestream-vfs" },
