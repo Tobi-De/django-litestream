@@ -1,5 +1,6 @@
 from __future__ import annotations
 
+import re
 import shutil
 import sqlite3
 import subprocess
@@ -19,6 +20,7 @@ from django_litestream.management.commands.litestream import (
     DAEMON_COMMANDS,
     LITESTREAM_COMMANDS,
     LITESTREAM_VERSION,
+    NO_EXPAND_ENV_COMMANDS,
     _db_location_from_alias,
     generate_temp_config,
 )
@@ -479,10 +481,10 @@ def test_parse_args_no_extra_options(subcommand):
 @pytest.mark.parametrize(
     "subcommand,extra_options,expected_flags",
     [
-        ("databases", {}, []),
+        ("databases", {"json": True}, ["-json"]),
         ("ltx", {"db_path": "/tmp/db.sqlite3"}, ["/tmp/db.sqlite3"]),
-        ("ltx", {"replica": "s3"}, ["-replica", "s3"]),
-        ("ltx", {"level": 2}, ["-level", "2"]),
+        ("ltx", {"level": "all"}, ["-level", "all"]),
+        ("ltx", {"json": True}, ["-json"]),
         ("replicate", {"exec": ["gunicorn", "app"]}, ["-exec", "gunicorn app"]),
         ("replicate", {"once": True}, ["-once"]),
         ("replicate", {"force_snapshot": True}, ["-force-snapshot"]),
@@ -497,20 +499,25 @@ def test_parse_args_no_extra_options(subcommand):
         ("restore", {"if_replica_exists": True}, ["-if-replica-exists"]),
         ("restore", {"if_db_not_exists": True}, ["-if-db-not-exists"]),
         ("restore", {"parallelism": 16}, ["-parallelism", "16"]),
+        ("restore", {"txid": "0000000a"}, ["-txid", "0000000a"]),
         (
             "restore",
             {"timestamp": "2025-01-01T00:00:00Z"},
             ["-timestamp", "2025-01-01T00:00:00Z"],
         ),
         ("restore", {"f": True}, ["-f"]),
+        ("restore", {"follow_interval": "5s"}, ["-follow-interval", "5s"]),
+        ("restore", {"dry_run": True}, ["-dry-run"]),
+        ("restore", {"force": True}, ["-force"]),
+        ("restore", {"json": True}, ["-json"]),
+        ("restore", {"integrity_check": "full"}, ["-integrity-check", "full"]),
         ("status", {"db_path": "/tmp/db.sqlite3"}, ["/tmp/db.sqlite3"]),
-        ("sync", {"db_path": "/tmp/db.sqlite3"}, ["/tmp/db.sqlite3"]),
+        ("status", {"json": True}, ["-json"]),
         (
             "wal",
-            {"db_path": "/tmp/db.sqlite3", "replica": "s3"},
-            ["-replica", "s3", "/tmp/db.sqlite3"],
+            {"db_path": "/tmp/db.sqlite3", "level": "2"},
+            ["-level", "2", "/tmp/db.sqlite3"],
         ),
-        ("wal", {"generation": "abc123"}, ["-generation", "abc123"]),
         ("reset", {"db_path": "/tmp/db.sqlite3"}, ["/tmp/db.sqlite3"]),
         ("reset", {"dry_run": True}, ["-dry-run"]),
     ],
@@ -537,8 +544,17 @@ def test_parse_args_bool_false_omitted():
 def test_parse_args_none_omitted():
     cmd = Command()
     with patch.object(cmd, "stdout"):
-        args = cmd.parse_args("ltx", {"config": Path("/tmp/cfg.yml"), "replica": None})
-    assert "-replica" not in args
+        args = cmd.parse_args("ltx", {"config": Path("/tmp/cfg.yml"), "level": None})
+    assert "-level" not in args
+
+
+def test_parse_args_forwards_no_expand_env():
+    cmd = Command()
+    with patch.object(cmd, "stdout"):
+        args = cmd.parse_args(
+            "databases", {"config": Path("/tmp/cfg.yml"), "no_expand_env": True}
+        )
+    assert "-no-expand-env" in args
 
 
 def test_parse_args_db_alias_resolution():
@@ -554,7 +570,7 @@ def test_parse_args_db_alias_resolution():
         }
         with patch.object(cmd, "stdout"):
             args = cmd.parse_args(
-                "sync", {"config": Path("/tmp/cfg.yml"), "db_path": "default"}
+                "status", {"config": Path("/tmp/cfg.yml"), "db_path": "default"}
             )
     assert "/path/to/db.sqlite3" in args
 
@@ -593,6 +609,11 @@ def test_daemon_args_basic(subcommand):
         ),
         ("start", {"db_path": "default"}, ["default"]),
         ("stop", {"db_path": "default", "timeout": 60}, ["default", "-timeout", "60"]),
+        (
+            "sync",
+            {"db_path": "default", "wait": True, "json": True},
+            ["default", "-wait", "-json"],
+        ),
     ],
 )
 def test_daemon_args_parametrized(subcommand, opts, expected_flags):
@@ -605,6 +626,69 @@ def test_daemon_args_parametrized(subcommand, opts, expected_flags):
             args = cmd.parse_daemon_args(subcommand, opts)
     for flag in expected_flags:
         assert flag in args, f"Expected {flag!r} in {args}"
+
+
+def test_sync_uses_daemon_transport():
+    """`litestream sync` is an IPC command: it takes no -config flag."""
+    assert "sync" in DAEMON_COMMANDS
+    assert "sync" not in LITESTREAM_COMMANDS
+
+    args = Command().parse_daemon_args("sync", {"db_path": "/tmp/db.sqlite3"})
+    assert "-config" not in args
+    assert "-no-expand-env" not in args
+
+
+def test_no_expand_env_not_offered_for_version():
+    assert "version" not in NO_EXPAND_ENV_COMMANDS
+    for subcommand in NO_EXPAND_ENV_COMMANDS:
+        assert subcommand in LITESTREAM_COMMANDS
+
+
+# ---------------------------------------------------------------------------
+# CLI: flag tables match the bundled binary
+# ---------------------------------------------------------------------------
+
+
+def _binary_help(subcommand: str) -> str:
+    binary = app_settings.bin_path
+    if not binary.exists():
+        pytest.skip(f"litestream binary not bundled at {binary}")
+    result = subprocess.run(
+        [binary, subcommand, "-h"], capture_output=True, text=True, check=False
+    )
+    return f"{result.stdout}\n{result.stderr}"
+
+
+@pytest.mark.parametrize("subcommand", sorted(LITESTREAM_COMMANDS))
+def test_config_command_flags_exist_upstream(subcommand):
+    """Every flag we expose must be accepted by the bundled binary."""
+    help_text = _binary_help(subcommand)
+    for argument in LITESTREAM_COMMANDS[subcommand]["arguments"]:
+        flag = argument["name"]
+        if not flag.startswith("-"):
+            continue
+        assert re.search(rf"^\s*{re.escape(flag)}\b", help_text, re.MULTILINE), (
+            f"{subcommand} {flag} is not a flag of litestream {LITESTREAM_VERSION}"
+        )
+
+
+@pytest.mark.parametrize("subcommand", sorted(DAEMON_COMMANDS))
+def test_daemon_command_flags_exist_upstream(subcommand):
+    help_text = _binary_help(subcommand)
+    for argument in DAEMON_COMMANDS[subcommand]["arguments"]:
+        flag = argument["name"]
+        if not flag.startswith("-"):
+            continue
+        assert re.search(rf"^\s*{re.escape(flag)}\b", help_text, re.MULTILINE), (
+            f"{subcommand} {flag} is not a flag of litestream {LITESTREAM_VERSION}"
+        )
+
+
+@pytest.mark.parametrize("subcommand", sorted(LITESTREAM_COMMANDS))
+def test_config_commands_accept_no_expand_env_only_where_supported(subcommand):
+    if subcommand not in NO_EXPAND_ENV_COMMANDS:
+        return
+    assert "-no-expand-env" in _binary_help(subcommand)
 
 
 # ---------------------------------------------------------------------------
@@ -627,6 +711,15 @@ def test_handle_version_calls_subprocess(bin_path):
                 cmd.handle(subcommand="version", verbosity=1)
     mock_run.assert_called_once()
     assert str(mock_run.call_args[0][0][0]) == str(bin_path)
+
+
+def test_handle_version_verbose_flag(bin_path):
+    cmd = Command()
+    with override_settings(LITESTREAM={"bin_path": str(bin_path)}):
+        with patch.object(subprocess, "run") as mock_run:
+            with patch.object(cmd, "stdout"):
+                cmd.handle(subcommand="version", verbosity=1, verbose=True)
+    assert mock_run.call_args[0][0][-1] == "-verbose"
 
 
 def test_handle_config_reads_config(bin_path):
@@ -718,7 +811,6 @@ def test_litestream_command_coverage():
         "replicate",
         "restore",
         "status",
-        "sync",
         "version",
         "wal",
         "reset",
@@ -727,7 +819,15 @@ def test_litestream_command_coverage():
 
 
 def test_daemon_command_coverage():
-    expected = {"info", "list", "register", "unregister", "start", "stop"}
+    expected = {
+        "info",
+        "list",
+        "register",
+        "unregister",
+        "start",
+        "stop",
+        "sync",
+    }
     assert set(DAEMON_COMMANDS.keys()) == expected
 
 

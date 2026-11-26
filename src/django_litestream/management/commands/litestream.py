@@ -24,10 +24,23 @@ if TYPE_CHECKING:
 
 LITESTREAM_VERSION = "0.5.18"
 
+# Commands that accept the `-no-expand-env` flag. `version` does not, and the
+# daemon commands in DAEMON_COMMANDS never read a config file.
+NO_EXPAND_ENV_COMMANDS = frozenset(
+    {"databases", "ltx", "replicate", "restore", "status", "reset", "wal"}
+)
+
 LITESTREAM_COMMANDS = {
     "databases": {
         "description": "List databases specified in config file",
-        "arguments": [],
+        "arguments": [
+            {
+                "name": "-json",
+                "action": "store_true",
+                "help": "Output raw JSON instead of human-readable text.",
+                "required": False,
+            },
+        ],
     },
     "ltx": {
         "description": "List available LTX files for a database",
@@ -37,14 +50,14 @@ LITESTREAM_COMMANDS = {
                 "help": "Path to the SQLite database file or replica URL",
             },
             {
-                "name": "-replica",
-                "help": "Optional, filters by replica. Only applies when listing database LTX files.",
+                "name": "-level",
+                "help": 'Compaction level to list (0-9 or "all"). Defaults to 0.',
                 "required": False,
             },
             {
-                "name": "-level",
-                "type": int,
-                "help": "View files at a specific compaction level.",
+                "name": "-json",
+                "action": "store_true",
+                "help": "Output raw JSON instead of human-readable text.",
                 "required": False,
             },
         ],
@@ -84,8 +97,8 @@ LITESTREAM_COMMANDS = {
                 "required": False,
             },
             {
-                "name": "--log-level",
-                "help": "Set log level (debug, info, warn, error).",
+                "name": "-log-level",
+                "help": "Set log level (trace, debug, info, warn, error).",
                 "required": False,
             },
         ],
@@ -98,8 +111,14 @@ LITESTREAM_COMMANDS = {
                 "help": "Path to the SQLite database file or replica URL",
             },
             {
-                "name": "-replica",
-                "help": "Restore from a specific replica. Defaults to replica with latest data.",
+                "name": "-txid",
+                "help": "Restore up to a specific hex-encoded transaction ID (inclusive). "
+                "Defaults to the highest available transaction.",
+                "required": False,
+            },
+            {
+                "name": "-timestamp",
+                "help": "Restore to a specific point-in-time. Defaults to use the latest available backup.",
                 "required": False,
             },
             {
@@ -127,31 +146,38 @@ LITESTREAM_COMMANDS = {
                 "required": False,
             },
             {
-                "name": "-generation",
-                "help": "Restore from a specific generation. Defaults to generation with latest data.",
-                "required": False,
-            },
-            {
-                "name": "-index",
-                "type": int,
-                "help": "Restore up to a specific LTX index (inclusive). Defaults to use the highest available index.",
-                "required": False,
-            },
-            {
-                "name": "-timestamp",
-                "help": "Restore to a specific point-in-time. Defaults to use the latest available backup.",
-                "required": False,
-            },
-            {
                 "name": "-f",
                 "action": "store_true",
                 "help": "Follow mode: continuously restore/follow the database.",
                 "required": False,
             },
             {
+                "name": "-follow-interval",
+                "help": "Polling interval for follow mode. Defaults to 1s.",
+                "required": False,
+            },
+            {
                 "name": "-dry-run",
                 "action": "store_true",
-                "help": "Print actions without performing them.",
+                "help": "Print the restore plan and exit without writing a database.",
+                "required": False,
+            },
+            {
+                "name": "-force",
+                "action": "store_true",
+                "help": "Overwrite an existing output database and SQLite sidecar files.",
+                "required": False,
+            },
+            {
+                "name": "-json",
+                "action": "store_true",
+                "help": "Output raw JSON summary on successful restore.",
+                "required": False,
+            },
+            {
+                "name": "-integrity-check",
+                "help": "Run a post-restore integrity check. One of: none, quick, full. "
+                "Defaults to none.",
                 "required": False,
             },
         ],
@@ -164,18 +190,25 @@ LITESTREAM_COMMANDS = {
                 "nargs": "?",
                 "help": "Path to a specific database (optional, shows all if omitted)",
             },
-        ],
-    },
-    "sync": {
-        "description": "Force immediate WAL-to-LTX sync for a database",
-        "arguments": [
             {
-                "name": "db_path",
-                "help": "Path to the SQLite database file",
+                "name": "-json",
+                "action": "store_true",
+                "help": "Output raw JSON instead of human-readable text.",
+                "required": False,
             },
         ],
     },
-    "version": {"description": "Prints the binary version", "arguments": []},
+    "version": {
+        "description": "Prints the binary version",
+        "arguments": [
+            {
+                "name": "-verbose",
+                "action": "store_true",
+                "help": "Print detailed build metadata (Go version, commit, build time, OS/arch).",
+                "required": False,
+            },
+        ],
+    },
     "wal": {
         "description": "(Deprecated) List available WAL files for a database. Use ltx instead.",
         "arguments": [
@@ -184,13 +217,14 @@ LITESTREAM_COMMANDS = {
                 "help": "Path to the SQLite database file or replica URL",
             },
             {
-                "name": "-replica",
-                "help": "Optional, filters by replica.",
+                "name": "-level",
+                "help": 'Compaction level to list (0-9 or "all"). Defaults to 0.',
                 "required": False,
             },
             {
-                "name": "-generation",
-                "help": "Optional, filter by a specific generation.",
+                "name": "-json",
+                "action": "store_true",
+                "help": "Output raw JSON instead of human-readable text.",
                 "required": False,
             },
         ],
@@ -372,6 +406,38 @@ DAEMON_COMMANDS = {
             },
         ],
     },
+    "sync": {
+        "description": "Force an immediate sync for a database (requires running daemon)",
+        "arguments": [
+            {
+                "name": "db_path",
+                "help": "Path to the SQLite database file or django database alias",
+            },
+            {
+                "name": "-wait",
+                "action": "store_true",
+                "help": "Block until sync completes including remote replication.",
+                "required": False,
+            },
+            {
+                "name": "-timeout",
+                "type": int,
+                "help": "Maximum time to wait in seconds. Defaults to 30.",
+                "required": False,
+            },
+            {
+                "name": "-socket",
+                "help": "Path to the control socket. Defaults to /var/run/litestream.sock.",
+                "required": False,
+            },
+            {
+                "name": "-json",
+                "action": "store_true",
+                "help": "Output raw JSON instead of human-readable text.",
+                "required": False,
+            },
+        ],
+    },
 }
 
 
@@ -397,12 +463,13 @@ class Command(BaseCommand):
                 copied_args = args.copy()
                 name = copied_args.pop("name")
                 parser.add_argument(name, **copied_args)
-            parser.add_argument(
-                "-no-expand-env",
-                action="store_true",
-                help="Disables environment variable expansion in configuration file.",
-                required=False,
-            )
+            if ls_cmd in NO_EXPAND_ENV_COMMANDS:
+                parser.add_argument(
+                    "-no-expand-env",
+                    action="store_true",
+                    help="Disables environment variable expansion in configuration file.",
+                    required=False,
+                )
 
         for daemon_cmd, details in DAEMON_COMMANDS.items():
             parser = subcommands.add_parser(
@@ -438,7 +505,10 @@ class Command(BaseCommand):
             with generate_temp_config() as config:
                 self.stdout.write(Path(config).read_text())
         elif options["subcommand"] == "version":
-            subprocess.run([app_settings.bin_path, "version"])
+            version_args = ["version"]
+            if options.get("verbose"):
+                version_args.append("-verbose")
+            subprocess.run([app_settings.bin_path, *version_args])
         elif options["subcommand"] == "verify":
             with generate_temp_config() as config:
                 exit_code, msg = self.verify(
@@ -502,6 +572,10 @@ class Command(BaseCommand):
                     optionals.extend([arg_name, str(value)])
             else:
                 positionals.append(str(value))
+
+        if options.get("no_expand_env") and subcommand in NO_EXPAND_ENV_COMMANDS:
+            optionals.append("-no-expand-env")
+
         return [subcommand, *list(chain(optionals)), *positionals]
 
     def parse_daemon_args(self, subcommand: str, options: dict) -> list[str]:
