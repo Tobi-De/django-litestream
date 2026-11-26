@@ -11,4 +11,8 @@ jobs:
     steps:
     - uses: actions/checkout@v4
     - uses: astral-sh/setup-uv@v2
+    - name: Install Litestream binary
+      # The binary ships inside platform wheels, so a source checkout needs it
+      # downloaded before the CLI drift tests can run.
+      run: uv run python scripts/install_binary.py
     - run: uv run --extra vfs pytest -v
